@@ -1,5 +1,7 @@
 # Issue Tracker MVP
 
+3 minute Loom Video Overview: https://www.loom.com/share/cb3667f889a7400a8d6405d62c248fc7
+
 A full-stack Issue Tracker application built with Angular 20 and Java (JDK 17), featuring user authentication, project management, issue tracking with real-time updates, and comprehensive filtering capabilities.
 
 ## Tech Stack
@@ -250,100 +252,20 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 
 ## If I Had 2 More Days
 
-### High Priority Enhancements
-
-1. **Enhanced Error Handling**
-   - Global error interceptor in Angular
-   - User-friendly error messages
-   - Error logging and monitoring
-   - Validation feedback improvements
-
-2. **User Management**
+1. **User Management**
+   - Admin options on account creation
+   - Admin priviliges
    - User profile page
    - User list endpoint (for assignee selection)
    - User search functionality
    - Avatar/profile picture support
 
-3. **Advanced Filtering UI Enhancements**
-   - Save filter presets
-   - URL-based filter state
-   - Filter chips display
-   - Clear all filters button
+2. **Enhanced Error Handling**
+   - Global error interceptor in Angular
+   - User-friendly error messages
+   - Error logging and monitoring
+   - Validation feedback improvements
 
-### Medium Priority Enhancements
-
-4. **Issue Tags/Labels**
-   - Tag entity and many-to-many relationship
-   - Tag filtering in issue list
-   - Tag management UI
-
-5. **File Attachments**
-   - File upload functionality
-   - Attachment storage (local/S3)
-   - Attachment display in issue detail
-
-6. **Email Notifications**
-   - Email service integration
-   - Notifications on issue assignment
-   - Notifications on status changes
-
-7. **Search Improvements**
-   - Full-text search in issue descriptions (currently only searches titles)
-   - Search highlighting
-   - Advanced search modal
-
-8. **Performance Optimizations**
-    - Lazy loading for large lists
-    - Virtual scrolling for issue list
-    - API response caching
-    - Database query optimization
-
-### Nice-to-Have Features
-
-9. **Dashboard**
-    - Project statistics
-    - Issue status distribution charts
-    - Quick actions
-
-10. **Export Functionality**
-    - Export issues to CSV/Excel
-    - PDF report generation
-    - Filtered export
-
-11. **Dark Mode**
-    - Theme switching
-    - User preference storage
-
-12. **Accessibility**
-    - ARIA labels
-    - Keyboard navigation
-    - Screen reader support
-
-13. **Internationalization**
-    - Multi-language support
-    - Date/time localization
-
-## Known Limitations
-
-1. **User List**: No endpoint to list all users (needed for assignee selection dropdown)
-2. **File Uploads**: Not implemented
-3. **Email Notifications**: Not implemented
-4. **Search**: Currently only searches issue titles, not descriptions
-
-## Production Considerations
-
-1. **Database**: Switch from H2 to PostgreSQL with proper connection pooling
-2. **Security**: 
-   - Use environment variables for JWT secret
-   - Enable HTTPS
-   - Implement rate limiting
-   - Add CSRF protection for state-changing operations
-3. **Monitoring**: Add logging framework (Logback), health checks, metrics
-4. **Deployment**: 
-   - Build frontend for production (`ng build` or `ng build --configuration production`)
-   - Configure CORS for production domain
-   - Set up CI/CD pipeline
-5. **Scalability**: Consider Redis for session management, message queue for async processing
 
 ## License
 
