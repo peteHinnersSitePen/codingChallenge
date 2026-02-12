@@ -1,0 +1,111 @@
+<div class="container">
+  <div *ngIf="loading" class="loading">Loading issue...</div>
+  <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+  
+  <div *ngIf="issue && !loading">
+    <div class="header">
+      <div>
+        <a routerLink="/issues" class="back-link">← Back to Issues</a>
+        <h1>{{ issue.title }}</h1>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary" (click)="editMode = !editMode">
+          {{ editMode ? 'Cancel' : 'Edit' }}
+        </button>
+        <button class="btn btn-danger" (click)="onDelete()" [disabled]="deleting">
+          {{ deleting ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
+    </div>
+    
+    <div class="issue-content">
+      <!-- View Mode -->
+      <div *ngIf="!editMode" class="issue-details">
+        <div class="detail-section">
+          <div class="detail-row">
+            <strong>Status:</strong>
+            <span class="status-badge" [class]="'status-' + issue.status.toLowerCase()">
+              {{ issue.status }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <strong>Priority:</strong>
+            <span class="priority-badge" [class]="'priority-' + issue.priority.toLowerCase()">
+              {{ issue.priority }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <strong>Project:</strong>
+            <a [routerLink]="['/projects', issue.projectId]">{{ issue.projectName }}</a>
+          </div>
+          <div class="detail-row" *ngIf="issue.assigneeName">
+            <strong>Assigned to:</strong>
+            <span>{{ issue.assigneeName }}</span>
+          </div>
+          <div class="detail-row">
+            <strong>Created:</strong>
+            <span>{{ issue.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="detail-row">
+            <strong>Updated:</strong>
+            <span>{{ issue.updatedAt | date:'medium' }}</span>
+          </div>
+        </div>
+        
+        <div class="description-section">
+          <h3>Description</h3>
+          <p>{{ issue.description || 'No description provided' }}</p>
+        </div>
+        
+        <!-- Comments Section (Placeholder) -->
+        <div class="comments-section">
+          <h3>Comments</h3>
+          <p class="placeholder-text">Comment functionality will be implemented here</p>
+        </div>
+        
+        <!-- Activity Log Section (Placeholder) -->
+        <div class="activity-section">
+          <h3>Activity Log</h3>
+          <p class="placeholder-text">Activity log will be displayed here</p>
+        </div>
+      </div>
+      
+      <!-- Edit Mode -->
+      <form *ngIf="editMode" (ngSubmit)="onUpdate()" class="edit-form">
+        <div class="form-group">
+          <label for="issueTitle">Title *</label>
+          <input type="text" id="issueTitle" [(ngModel)]="editData.title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label for="issueDescription">Description</label>
+          <textarea id="issueDescription" [(ngModel)]="editData.description" name="description" rows="6"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editStatus">Status</label>
+            <select id="editStatus" [(ngModel)]="editData.status" name="status">
+              <option value="OPEN">Open</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="CLOSED">Closed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editPriority">Priority</label>
+            <select id="editPriority" [(ngModel)]="editData.priority" name="priority">
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="CRITICAL">Critical</option>
+            </select>
+          </div>
+        </div>
+        <div *ngIf="updateError" class="error-message">{{ updateError }}</div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="updating">
+            {{ updating ? 'Updating...' : 'Update Issue' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
