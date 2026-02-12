@@ -41,6 +41,39 @@ public class CommentController {
         }
     }
     
+    @PutMapping("/{commentId}")
+    public ResponseEntity<?> updateComment(@PathVariable Long issueId,
+                                          @PathVariable Long commentId,
+                                          @Valid @RequestBody CreateCommentRequest request) {
+        try {
+            CommentDto comment = commentService.updateComment(commentId, request);
+            return ResponseEntity.ok(comment);
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    
+    @DeleteMapping("/{commentId}")
+    public ResponseEntity<?> deleteComment(@PathVariable Long issueId,
+                                          @PathVariable Long commentId) {
+        try {
+            commentService.deleteComment(commentId);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse(e.getMessage()));
+            }
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ErrorResponse(e.getMessage()));
+        }
+    }
+    
     private static class ErrorResponse {
         private String message;
         

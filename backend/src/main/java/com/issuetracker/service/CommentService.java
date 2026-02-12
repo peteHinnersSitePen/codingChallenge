@@ -68,6 +68,62 @@ public class CommentService {
             .collect(Collectors.toList());
     }
     
+    @Transactional
+    public CommentDto updateComment(Long commentId, CreateCommentRequest request) {
+        // Fetch comment with author eagerly loaded
+        Comment comment = commentRepository.findByIdWithAuthor(commentId)
+            .orElseThrow(() -> new RuntimeException("Comment not found"));
+        
+        // Verify current user is the author - compare by email
+        String currentUserEmail = getCurrentUserEmail();
+        String authorEmail = comment.getAuthor().getEmail();
+        if (!authorEmail.equals(currentUserEmail)) {
+            throw new RuntimeException("You can only edit your own comments");
+        }
+        
+        comment.setContent(request.getContent());
+        comment = commentRepository.save(comment);
+        
+        return convertToDto(comment);
+    }
+    
+    @Transactional
+    public void deleteComment(Long commentId) {
+        // Fetch comment with author eagerly loaded
+        Comment comment = commentRepository.findByIdWithAuthor(commentId)
+            .orElseThrow(() -> new RuntimeException("Comment not found"));
+        
+        // Verify current user is the author - compare by email
+        String currentUserEmail = getCurrentUserEmail();
+        String authorEmail = comment.getAuthor().getEmail();
+        if (!authorEmail.equals(currentUserEmail)) {
+            throw new RuntimeException("You can only delete your own comments");
+        }
+        
+        commentRepository.delete(comment);
+    }
+    
+    private String getCurrentUserEmail() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+            throw new RuntimeException("User not authenticated");
+        }
+        
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userDetails.getUsername(); // Username is the email
+    }
+    
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
+            throw new RuntimeException("User not authenticated");
+        }
+        
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        return userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+    
     private CommentDto convertToDto(Comment comment) {
         CommentDto dto = new CommentDto();
         dto.setId(comment.getId());

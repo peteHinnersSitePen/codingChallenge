@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { IssueService, Issue } from '../../services/issue.service';
 import { ProjectService, Project } from '../../services/project.service';
 import { CommentService, Comment } from '../../services/comment.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-issue-detail',
@@ -27,6 +28,9 @@ export class IssueDetailComponent implements OnInit {
   newComment = '';
   submittingComment = false;
   commentError = '';
+  editingCommentId: number | null = null;
+  editCommentContent = '';
+  deletingCommentId: number | null = null;
   
   editData: any = {
     title: '',
@@ -39,7 +43,8 @@ export class IssueDetailComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private issueService: IssueService,
-    private commentService: CommentService
+    private commentService: CommentService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
@@ -105,6 +110,66 @@ export class IssueDetailComponent implements OnInit {
       error: (error: any) => {
         this.commentError = error.error?.message || 'Failed to post comment';
         this.submittingComment = false;
+      }
+    });
+  }
+
+  isCommentAuthor(comment: Comment): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    return currentUser !== null && comment.authorId === currentUser.userId;
+  }
+
+  startEditComment(comment: Comment) {
+    this.editingCommentId = comment.id;
+    this.editCommentContent = comment.content;
+  }
+
+  cancelEditComment() {
+    this.editingCommentId = null;
+    this.editCommentContent = '';
+  }
+
+  saveEditComment(commentId: number) {
+    if (!this.issue || !this.editCommentContent.trim()) {
+      return;
+    }
+
+    this.commentService.updateComment(this.issue.id, commentId, { content: this.editCommentContent.trim() }).subscribe({
+      next: (updatedComment) => {
+        const index = this.comments.findIndex(c => c.id === commentId);
+        if (index !== -1) {
+          this.comments[index] = updatedComment;
+        }
+        this.editingCommentId = null;
+        this.editCommentContent = '';
+      },
+      error: (error: any) => {
+        this.commentError = error.error?.message || 'Failed to update comment';
+      }
+    });
+  }
+
+  confirmDeleteComment(commentId: number) {
+    this.deletingCommentId = commentId;
+  }
+
+  cancelDeleteComment() {
+    this.deletingCommentId = null;
+  }
+
+  deleteComment(commentId: number) {
+    if (!this.issue) {
+      return;
+    }
+
+    this.commentService.deleteComment(this.issue.id, commentId).subscribe({
+      next: () => {
+        this.comments = this.comments.filter(c => c.id !== commentId);
+        this.deletingCommentId = null;
+      },
+      error: (error: any) => {
+        this.commentError = error.error?.message || 'Failed to delete comment';
+        this.deletingCommentId = null;
       }
     });
   }
