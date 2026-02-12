@@ -8,7 +8,7 @@ A full-stack Issue Tracker application built with Angular 20 and Java (JDK 17), 
 - **Angular 20** - Modern web framework with standalone components
 - **TypeScript** - Type-safe development
 - **RxJS** - Reactive programming for async operations
-- **CSS** - Custom styling (no framework dependencies)
+- **SCSS** - Sass styling with component-scoped stylesheets (no framework dependencies)
 
 ### Backend
 - **Java 17** - Modern Java features
