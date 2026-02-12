@@ -9,6 +9,7 @@ import { ActivityLogService, ActivityLog } from '../../services/activity-log.ser
 import { AuthService } from '../../services/auth.service';
 import { WebSocketService, CommentUpdateEvent, IssueUpdateEvent, ActivityLogUpdateEvent } from '../../services/websocket.service';
 import { Subscription } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-issue-detail',
@@ -98,19 +99,19 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
       this.commentUpdateSubscription.unsubscribe();
     }
 
-    // Subscribe to connection status and set up comment subscription when connected
-    const connectionSub = this.wsService.getConnectionStatus().subscribe(connected => {
-      if (connected) {
-        this.subscribeToCommentUpdates(issueId);
-        connectionSub.unsubscribe(); // Only need to wait once
-      }
-    });
+    const subscribeToComments = () => this.subscribeToCommentUpdates(issueId);
 
     // If already connected, subscribe immediately
     if (this.wsService.isConnected()) {
-      connectionSub.unsubscribe();
-      this.subscribeToCommentUpdates(issueId);
+      subscribeToComments();
+      return;
     }
+
+    // Otherwise wait for first connected emission (take(1) avoids referencing sub inside callback)
+    this.wsService.getConnectionStatus().pipe(
+      filter(connected => connected),
+      take(1)
+    ).subscribe(subscribeToComments);
   }
 
   private subscribeToCommentUpdates(issueId: number) {
@@ -391,17 +392,17 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
       this.activityLogUpdateSubscription.unsubscribe();
     }
 
-    const connectionSub = this.wsService.getConnectionStatus().subscribe(connected => {
-      if (connected) {
-        this.subscribeToActivityLogUpdates(issueId);
-        connectionSub.unsubscribe();
-      }
-    });
+    const subscribeToActivityLogs = () => this.subscribeToActivityLogUpdates(issueId);
 
     if (this.wsService.isConnected()) {
-      connectionSub.unsubscribe();
-      this.subscribeToActivityLogUpdates(issueId);
+      subscribeToActivityLogs();
+      return;
     }
+
+    this.wsService.getConnectionStatus().pipe(
+      filter(connected => connected),
+      take(1)
+    ).subscribe(subscribeToActivityLogs);
   }
 
   private subscribeToActivityLogUpdates(issueId: number) {
