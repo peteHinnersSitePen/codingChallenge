@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ProjectService, Project } from '../../services/project.service';
+import { IssueService, Issue, PageResponse } from '../../services/issue.service';
 import { FormsModule } from '@angular/forms';
 
 @Component({
@@ -20,11 +21,14 @@ export class ProjectDetailComponent implements OnInit {
   updating = false;
   updateError = '';
   deleting = false;
+  issuesPage: PageResponse<Issue> | null = null;
+  loadingIssues = false;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private issueService: IssueService
   ) {}
 
   ngOnInit() {
@@ -42,6 +46,8 @@ export class ProjectDetailComponent implements OnInit {
         this.project = project;
         this.editName = project.name;
         this.loading = false;
+        // Load issues for this project
+        this.loadIssues(project.id);
       },
       error: (error: any) => {
         this.errorMessage = 'Failed to load project';
@@ -88,5 +94,29 @@ export class ProjectDetailComponent implements OnInit {
         this.deleting = false;
       }
     });
+  }
+
+  loadIssues(projectId: number) {
+    this.loadingIssues = true;
+    this.issueService.getIssues({
+      page: 0,
+      size: 50,
+      sortBy: 'createdAt',
+      sortDir: 'desc',
+      projectId: projectId
+    }).subscribe({
+      next: (page) => {
+        this.issuesPage = page;
+        this.loadingIssues = false;
+      },
+      error: (error: any) => {
+        console.error('Error loading issues:', error);
+        this.loadingIssues = false;
+      }
+    });
+  }
+
+  formatStatus(status: string): string {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 }
