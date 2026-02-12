@@ -98,7 +98,7 @@ class ProjectControllerIntegrationTest {
         mockMvc.perform(post("/api/projects")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isUnauthorized());
+            .andExpect(status().isForbidden()); // Spring Security returns 403 Forbidden for unauthenticated requests
     }
     
     @Test

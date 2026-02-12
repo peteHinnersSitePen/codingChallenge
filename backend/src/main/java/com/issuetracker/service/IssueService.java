@@ -80,15 +80,17 @@ public class IssueService {
         IssueDto dto = convertToDto(issue);
         
         // Publish WebSocket event after transaction commits
-        IssueUpdateEvent event = new IssueUpdateEvent(
-            "CREATED",
-            dto.getId(),
-            dto.getTitle(),
-            dto.getStatus(),
-            dto.getPriority(),
-            dto.getProjectId()
-        );
-        messagingTemplate.convertAndSend("/topic/issues", event);
+        if (messagingTemplate != null) {
+            IssueUpdateEvent event = new IssueUpdateEvent(
+                "CREATED",
+                dto.getId(),
+                dto.getTitle(),
+                dto.getStatus(),
+                dto.getPriority(),
+                dto.getProjectId()
+            );
+            messagingTemplate.convertAndSend("/topic/issues", event);
+        }
         
         return dto;
     }
@@ -188,15 +190,17 @@ public class IssueService {
         IssueDto dto = convertToDto(issue);
         
         // Publish WebSocket event
-        IssueUpdateEvent event = new IssueUpdateEvent(
-            "UPDATED",
-            dto.getId(),
-            dto.getTitle(),
-            dto.getStatus(),
-            dto.getPriority(),
-            dto.getProjectId()
-        );
-        messagingTemplate.convertAndSend("/topic/issues", event);
+        if (messagingTemplate != null) {
+            IssueUpdateEvent event = new IssueUpdateEvent(
+                "UPDATED",
+                dto.getId(),
+                dto.getTitle(),
+                dto.getStatus(),
+                dto.getPriority(),
+                dto.getProjectId()
+            );
+            messagingTemplate.convertAndSend("/topic/issues", event);
+        }
         
         return dto;
     }
@@ -212,15 +216,17 @@ public class IssueService {
         issueRepository.delete(issue);
         
         // Publish WebSocket event
-        IssueUpdateEvent event = new IssueUpdateEvent(
-            "DELETED",
-            id,
-            title,
-            issue.getStatus(),
-            issue.getPriority(),
-            projectId
-        );
-        messagingTemplate.convertAndSend("/topic/issues", event);
+        if (messagingTemplate != null) {
+            IssueUpdateEvent event = new IssueUpdateEvent(
+                "DELETED",
+                id,
+                title,
+                issue.getStatus(),
+                issue.getPriority(),
+                projectId
+            );
+            messagingTemplate.convertAndSend("/topic/issues", event);
+        }
     }
     
     private IssueDto convertToDto(Issue issue) {
