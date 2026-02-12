@@ -38,6 +38,10 @@
             <strong>Project:</strong>
             <a [routerLink]="['/projects', issue.projectId]">{{ issue.projectName }}</a>
           </div>
+          <div class="detail-row" *ngIf="issue.creatorName">
+            <strong>Created by:</strong>
+            <span>{{ issue.creatorName }}</span>
+          </div>
           <div class="detail-row" *ngIf="issue.assigneeName">
             <strong>Assigned to:</strong>
             <span>{{ issue.assigneeName }}</span>
@@ -121,12 +125,6 @@
               <div *ngIf="editingCommentId !== comment.id && deletingCommentId !== comment.id" class="comment-content">{{ comment.content }}</div>
             </div>
           </div>
-        </div>
-        
-        <!-- Activity Log Section (Placeholder) -->
-        <div class="activity-section">
-          <h3>Activity Log</h3>
-          <p class="placeholder-text">Activity log will be displayed here</p>
         </div>
       </div>
       

@@ -51,4 +51,7 @@ public interface IssueRepository extends JpaRepository<Issue, Long> {
         @Param("searchText") String searchText,
         Pageable pageable
     );
+    
+    @Query("SELECT i FROM Issue i LEFT JOIN FETCH i.creator LEFT JOIN FETCH i.assignee WHERE i.id = :id")
+    java.util.Optional<Issue> findByIdWithCreatorAndAssignee(@Param("id") Long id);
 }

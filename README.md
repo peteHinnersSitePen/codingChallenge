@@ -233,12 +233,11 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
    - Real-time UI updates without page refresh
    - Connection management and reconnection logic
 
-2. **Comments & Activity Log**
+2. **Comments**
    - Comment entity and repository
    - Comment CRUD APIs
-   - Activity log tracking (who changed what, when)
    - Comment thread UI in issue detail view
-   - Activity timeline display
+   - Real-time comment updates via WebSocket
 
 3. **Enhanced Error Handling**
    - Global error interceptor in Angular
@@ -291,7 +290,6 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 11. **Dashboard**
     - Project statistics
     - Issue status distribution charts
-    - Recent activity feed
     - Quick actions
 
 12. **Export Functionality**
@@ -314,10 +312,7 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 
 ## Known Limitations
 
-1. **WebSocket**: Backend infrastructure is ready, but full STOMP client implementation requires additional npm packages
-2. **Comments**: Placeholder structure exists; full implementation needed
-3. **Activity Log**: Placeholder structure exists; full implementation needed
-4. **User List**: No endpoint to list all users (needed for assignee selection dropdown)
+1. **User List**: No endpoint to list all users (needed for assignee selection dropdown)
 5. **File Uploads**: Not implemented
 6. **Email Notifications**: Not implemented
 

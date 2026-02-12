@@ -14,6 +14,8 @@ public class IssueDto {
     private String projectName;
     private Long assigneeId;
     private String assigneeName;
+    private Long creatorId;
+    private String creatorName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     
@@ -90,6 +92,22 @@ public class IssueDto {
     
     public void setAssigneeName(String assigneeName) {
         this.assigneeName = assigneeName;
+    }
+    
+    public Long getCreatorId() {
+        return creatorId;
+    }
+    
+    public void setCreatorId(Long creatorId) {
+        this.creatorId = creatorId;
+    }
+    
+    public String getCreatorName() {
+        return creatorName;
+    }
+    
+    public void setCreatorName(String creatorName) {
+        this.creatorName = creatorName;
     }
     
     public LocalDateTime getCreatedAt() {

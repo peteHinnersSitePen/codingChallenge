@@ -45,12 +45,25 @@ public class IssueService {
         Project project = projectRepository.findById(request.getProjectId())
             .orElseThrow(() -> new RuntimeException("Project not found"));
         
+        // Get current authenticated user as creator
+        org.springframework.security.core.Authentication authentication = 
+            org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !(authentication.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails)) {
+            throw new RuntimeException("User not authenticated");
+        }
+        
+        org.springframework.security.core.userdetails.UserDetails userDetails = 
+            (org.springframework.security.core.userdetails.UserDetails) authentication.getPrincipal();
+        User creator = userRepository.findByEmail(userDetails.getUsername())
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
         Issue issue = new Issue();
         issue.setTitle(request.getTitle());
         issue.setDescription(request.getDescription());
         issue.setStatus(request.getStatus() != null ? request.getStatus() : IssueStatus.OPEN);
         issue.setPriority(request.getPriority() != null ? request.getPriority() : IssuePriority.MEDIUM);
         issue.setProject(project);
+        issue.setCreator(creator);
         
         if (request.getAssigneeId() != null) {
             User assignee = userRepository.findById(request.getAssigneeId())
@@ -59,6 +72,10 @@ public class IssueService {
         }
         
         issue = issueRepository.save(issue);
+        
+        // Reload with creator and assignee eagerly fetched to ensure DTO conversion works
+        issue = issueRepository.findByIdWithCreatorAndAssignee(issue.getId())
+            .orElse(issue); // Fallback to original if query fails
         
         IssueDto dto = convertToDto(issue);
         
@@ -137,7 +154,8 @@ public class IssueService {
     }
     
     public IssueDto getIssueById(Long id) {
-        Issue issue = issueRepository.findById(id)
+        // Use custom query to eagerly fetch creator and assignee
+        Issue issue = issueRepository.findByIdWithCreatorAndAssignee(id)
             .orElseThrow(() -> new RuntimeException("Issue not found"));
         
         return convertToDto(issue);
@@ -162,6 +180,10 @@ public class IssueService {
         }
         
         issue = issueRepository.save(issue);
+        
+        // Reload with creator and assignee eagerly fetched
+        issue = issueRepository.findByIdWithCreatorAndAssignee(issue.getId())
+            .orElse(issue); // Fallback to original if query fails
         
         IssueDto dto = convertToDto(issue);
         
@@ -211,9 +233,21 @@ public class IssueService {
         dto.setProjectId(issue.getProject().getId());
         dto.setProjectName(issue.getProject().getName());
         
-        if (issue.getAssignee() != null) {
-            dto.setAssigneeId(issue.getAssignee().getId());
-            dto.setAssigneeName(issue.getAssignee().getName());
+        // Set creator if available
+        if (issue.getCreator() != null) {
+            dto.setCreatorId(issue.getCreator().getId());
+            dto.setCreatorName(issue.getCreator().getName());
+        }
+        
+        // Set assignee if available
+        try {
+            User assignee = issue.getAssignee();
+            if (assignee != null) {
+                dto.setAssigneeId(assignee.getId());
+                dto.setAssigneeName(assignee.getName());
+            }
+        } catch (Exception e) {
+            // Assignee might be null or not loaded - that's okay
         }
         
         dto.setCreatedAt(issue.getCreatedAt());

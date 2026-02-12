@@ -34,6 +34,10 @@ public class Issue {
     @JoinColumn(name = "assignee_id")
     private User assignee;
     
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id")
+    private User creator;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -106,6 +110,14 @@ public class Issue {
     
     public void setAssignee(User assignee) {
         this.assignee = assignee;
+    }
+    
+    public User getCreator() {
+        return creator;
+    }
+    
+    public void setCreator(User creator) {
+        this.creator = creator;
     }
     
     public LocalDateTime getCreatedAt() {

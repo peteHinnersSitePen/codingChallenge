@@ -12,6 +12,8 @@ export interface Issue {
   projectName: string;
   assigneeId?: number;
   assigneeName?: string;
+  creatorId?: number;
+  creatorName?: string;
   createdAt: string;
   updatedAt: string;
 }
