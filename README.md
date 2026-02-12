@@ -168,6 +168,12 @@ cd backend
 mvn test
 ```
 
+If backend tests fail with errors like `Could not initialize plugin: MockMaker` or `Could not self-attach to current VM`, the cause is often a restricted execution environment (e.g. some CI runners or sandboxes). Run `mvn test` in a normal terminal, or try:
+
+```bash
+MAVEN_OPTS="--add-opens java.base/java.lang=ALL-UNNAMED" mvn test
+```
+
 **Frontend Tests:**
 ```bash
 cd frontend
