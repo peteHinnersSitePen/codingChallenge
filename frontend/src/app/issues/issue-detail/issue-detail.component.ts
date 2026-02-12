@@ -33,6 +33,7 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   editingCommentId: number | null = null;
   editCommentContent = '';
   deletingCommentId: number | null = null;
+  selectedCommentId: number | null = null;
   private commentUpdateSubscription?: Subscription;
   
   editData: any = {
@@ -196,14 +197,44 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
     return currentUser !== null && comment.authorId === currentUser.userId;
   }
 
+  onCommentClick(comment: Comment, event: Event) {
+    // Prevent event from bubbling up to parent (comments-section)
+    event.stopPropagation();
+    
+    // Check if the click target is specifically a button or within a button
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'BUTTON' || target.closest('button')) {
+      // Don't toggle if clicking on buttons
+      return;
+    }
+    
+    // Only allow selection if user is the author
+    if (this.isCommentAuthor(comment)) {
+      // Toggle selection - if already selected, deselect
+      if (this.selectedCommentId === comment.id) {
+        this.selectedCommentId = null;
+        this.editingCommentId = null;
+        this.deletingCommentId = null;
+      } else {
+        this.selectedCommentId = comment.id;
+        // Clear any edit/delete states when selecting a different comment
+        this.editingCommentId = null;
+        this.deletingCommentId = null;
+      }
+    }
+    // If not the author, do nothing (no visual feedback)
+  }
+
   startEditComment(comment: Comment) {
     this.editingCommentId = comment.id;
     this.editCommentContent = comment.content;
+    this.selectedCommentId = null; // Clear selection when entering edit mode
   }
 
   cancelEditComment() {
     this.editingCommentId = null;
     this.editCommentContent = '';
+    this.selectedCommentId = null;
   }
 
   saveEditComment(commentId: number) {
@@ -229,10 +260,12 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
 
   confirmDeleteComment(commentId: number) {
     this.deletingCommentId = commentId;
+    this.selectedCommentId = null; // Clear selection when entering delete confirmation
   }
 
   cancelDeleteComment() {
     this.deletingCommentId = null;
+    this.selectedCommentId = null;
   }
 
   deleteComment(commentId: number) {
