@@ -17,7 +17,7 @@ A full-stack Issue Tracker application built with Angular 20 and Java (JDK 17), 
 - **Spring Security** - Authentication and authorization
 - **Spring WebSocket** - Real-time communication
 - **JWT** - Token-based authentication
-- **H2 Database** - In-memory database for development
+- **H2 Database** - Embedded file-based database for development (persists across restarts)
 - **PostgreSQL** - Production-ready database support
 - **Maven** - Dependency management and build tool
 
@@ -80,7 +80,7 @@ sitepen/
 │   │       ├── issues/          # Issue components (list with filters, detail)
 │   │       ├── guards/          # Route guards (auth guard)
 │   │       ├── interceptors/    # HTTP interceptors (auth token)
-│   │       └── services/       # API services (auth, project, issue, websocket)
+│   │       └── services/       # API services (auth, project, issue, comment, websocket)
 │   ├── angular.json
 │   ├── package.json
 │   └── tsconfig.json
@@ -93,7 +93,7 @@ sitepen/
     │   │   │   ├── controller/  # REST controllers
     │   │   │   ├── dto/         # Data transfer objects
     │   │   │   ├── filter/      # JWT authentication filter
-    │   │   │   ├── model/       # Domain models (User, Project, Issue)
+    │   │   │   ├── model/       # Domain models (User, Project, Issue, Comment)
     │   │   │   ├── repository/  # Data access layer
     │   │   │   ├── service/     # Business logic
     │   │   │   └── util/        # Utilities (JWT)
@@ -190,7 +190,9 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 **Entity Relationships:**
 - **User** (1) → (N) **Project** (owner relationship)
 - **Project** (1) → (N) **Issue** (project ownership)
-- **User** (1) → (N) **Issue** (assignee relationship, optional)
+- **User** (1) → (N) **Issue** (assignee relationship, optional; creator relationship for issue creator)
+- **Issue** (1) → (N) **Comment** (comments on issue)
+- **User** (1) → (N) **Comment** (comment author)
 
 **Indexing Strategy:**
 - Primary keys: Auto-indexed by JPA
@@ -203,7 +205,7 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
   - `title` (text search) - Full-text index for search functionality
   - Composite index on `(project_id, status)` for common query patterns
 
-**Note:** H2 in-memory database is used for development. For production, PostgreSQL with proper indexing should be configured.
+**Note:** H2 file-based database is used for development (data persists across restarts). For production, PostgreSQL with proper indexing should be configured.
 
 ## Trade-offs & Design Decisions
 
@@ -332,7 +334,7 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
    - Add CSRF protection for state-changing operations
 3. **Monitoring**: Add logging framework (Logback), health checks, metrics
 4. **Deployment**: 
-   - Build frontend for production (`ng build --prod`)
+   - Build frontend for production (`ng build` or `ng build --configuration production`)
    - Configure CORS for production domain
    - Set up CI/CD pipeline
 5. **Scalability**: Consider Redis for session management, message queue for async processing
