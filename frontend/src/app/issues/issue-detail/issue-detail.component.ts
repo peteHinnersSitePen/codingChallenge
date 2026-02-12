@@ -6,7 +6,7 @@ import { IssueService, Issue } from '../../services/issue.service';
 import { ProjectService, Project } from '../../services/project.service';
 import { CommentService, Comment } from '../../services/comment.service';
 import { AuthService } from '../../services/auth.service';
-import { WebSocketService, CommentUpdateEvent } from '../../services/websocket.service';
+import { WebSocketService, CommentUpdateEvent, IssueUpdateEvent } from '../../services/websocket.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -35,6 +35,7 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   deletingCommentId: number | null = null;
   selectedCommentId: number | null = null;
   private commentUpdateSubscription?: Subscription;
+  private issueUpdateSubscription?: Subscription;
   
   editData: any = {
     title: '',
@@ -74,6 +75,7 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.loadComments(id);
         this.setupCommentWebSocketSubscription(id);
+        this.setupIssueWebSocketSubscription();
       },
       error: (error: any) => {
         this.errorMessage = 'Failed to load issue';
@@ -144,9 +146,28 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  private setupIssueWebSocketSubscription() {
+    // Subscribe to issue updates
+    this.issueUpdateSubscription = this.wsService.getIssueUpdates().subscribe({
+      next: (event: IssueUpdateEvent) => {
+        // Only reload if this update is for the current issue
+        if (this.issue && event.issueId === this.issue.id && event.eventType === 'UPDATED') {
+          console.log('Issue updated via WebSocket, reloading issue:', event.issueId);
+          this.loadIssue(this.issue.id);
+        }
+      },
+      error: (error) => {
+        console.warn('Issue WebSocket subscription error (non-critical):', error);
+      }
+    });
+  }
+
   ngOnDestroy() {
     if (this.commentUpdateSubscription) {
       this.commentUpdateSubscription.unsubscribe();
+    }
+    if (this.issueUpdateSubscription) {
+      this.issueUpdateSubscription.unsubscribe();
     }
     // Unsubscribe from WebSocket topic when component is destroyed
     if (this.issue) {
