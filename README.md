@@ -33,20 +33,29 @@ A full-stack Issue Tracker application built with Angular 20 and Java (JDK 17), 
 - Create, read, update, delete projects
 - Project ownership model
 - Project listing and detail views
+- Sorting (by name, created date, modified date)
+- Search functionality
+- Issues list displayed on project detail page
 
 ✅ **Issues**
 - Full CRUD operations for issues
 - Server-side pagination
 - Advanced filtering (status, priority, assignee, project, text search)
-- Sorting capabilities
+- Sorting capabilities (by title, status, priority, created date, updated date)
 - Issue assignment to users
 - Status workflow (Open → In Progress → Closed)
 - Priority levels (Low, Medium, High, Critical)
+- Issue creator tracking
+- Comments system with full CRUD operations
+- Real-time comment updates via WebSocket
+- Comment editing and deletion (author-only)
 
 ✅ **Real-time Updates**
-- WebSocket infrastructure for real-time notifications
-- Backend publishes events on issue changes
-- Frontend service structure ready for WebSocket integration
+- Full WebSocket implementation with STOMP protocol
+- Real-time issue updates (create, update, delete) across all clients
+- Real-time comment updates (create, update, delete)
+- Connection management and automatic reconnection
+- Issue detail page updates in real-time when issue is modified
 
 ✅ **Testing**
 - Unit tests for core business logic (ProjectService, IssueService)
@@ -116,11 +125,13 @@ The backend will start on `http://localhost:8080`
 
 **API Endpoints:**
 - Authentication: `POST /api/auth/signup`, `POST /api/auth/login`
-- Projects: `GET|POST /api/projects`, `GET|PUT|DELETE /api/projects/{id}`
-- Issues: `GET|POST /api/issues`, `GET|PUT|DELETE /api/issues/{id}`
+- Projects: `GET|POST /api/projects`, `GET|PUT|DELETE /api/projects/{id}` (supports `sortBy`, `sortDir`, `searchText` query params)
+- Issues: `GET|POST /api/issues`, `GET|PUT|DELETE /api/issues/{id}` (supports pagination, filtering, sorting)
+- Comments: `GET|POST /api/issues/{issueId}/comments`, `PUT|DELETE /api/issues/{issueId}/comments/{commentId}`
+- WebSocket: `/ws` endpoint for real-time updates (`/topic/issues`, `/topic/issues/{issueId}/comments`)
 
 **H2 Console** (for development): `http://localhost:8080/h2-console`
-- JDBC URL: `jdbc:h2:mem:issuetracker`
+- JDBC URL: `jdbc:h2:file:./data/issuetracker` (file-based for persistence)
 - Username: `sa`
 - Password: (empty)
 
@@ -208,10 +219,10 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 - **Route Guards**: Protection at route level for authenticated access
 
 ### Real-time Updates
-- **WebSocket Infrastructure**: Backend ready with Spring WebSocket
-- **STOMP Protocol**: Configured but requires additional frontend dependencies for full implementation
-- **Current State**: Backend publishes events; frontend has service structure ready
-- **MVP Approach**: Can be enhanced with sockjs-client and @stomp/stompjs packages
+- **WebSocket Infrastructure**: Fully implemented with Spring WebSocket
+- **STOMP Protocol**: Complete implementation with sockjs-client and @stomp/stompjs
+- **Current State**: Real-time updates working for issues and comments
+- **Connection Management**: Automatic reconnection with pending subscription handling
 
 ### Testing Strategy
 - **Unit Tests**: Focus on business logic (services) with mocked dependencies
@@ -227,31 +238,19 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 
 ### High Priority Enhancements
 
-1. **Complete WebSocket Implementation**
-   - Add sockjs-client and @stomp/stompjs to frontend
-   - Implement full STOMP client connection
-   - Real-time UI updates without page refresh
-   - Connection management and reconnection logic
-
-2. **Comments**
-   - Comment entity and repository
-   - Comment CRUD APIs
-   - Comment thread UI in issue detail view
-   - Real-time comment updates via WebSocket
-
-3. **Enhanced Error Handling**
+1. **Enhanced Error Handling**
    - Global error interceptor in Angular
    - User-friendly error messages
    - Error logging and monitoring
    - Validation feedback improvements
 
-4. **User Management**
+2. **User Management**
    - User profile page
    - User list endpoint (for assignee selection)
    - User search functionality
    - Avatar/profile picture support
 
-5. **Advanced Filtering UI**
+3. **Advanced Filtering UI Enhancements**
    - Save filter presets
    - URL-based filter state
    - Filter chips display
@@ -259,27 +258,27 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 
 ### Medium Priority Enhancements
 
-6. **Issue Tags/Labels**
+4. **Issue Tags/Labels**
    - Tag entity and many-to-many relationship
    - Tag filtering in issue list
    - Tag management UI
 
-7. **File Attachments**
+5. **File Attachments**
    - File upload functionality
    - Attachment storage (local/S3)
    - Attachment display in issue detail
 
-8. **Email Notifications**
+6. **Email Notifications**
    - Email service integration
    - Notifications on issue assignment
    - Notifications on status changes
 
-9. **Search Improvements**
-   - Full-text search in description
+7. **Search Improvements**
+   - Full-text search in issue descriptions (currently only searches titles)
    - Search highlighting
    - Advanced search modal
 
-10. **Performance Optimizations**
+8. **Performance Optimizations**
     - Lazy loading for large lists
     - Virtual scrolling for issue list
     - API response caching
@@ -287,34 +286,35 @@ The application uses a **relational database** (H2 for dev, PostgreSQL for produ
 
 ### Nice-to-Have Features
 
-11. **Dashboard**
+9. **Dashboard**
     - Project statistics
     - Issue status distribution charts
     - Quick actions
 
-12. **Export Functionality**
+10. **Export Functionality**
     - Export issues to CSV/Excel
     - PDF report generation
     - Filtered export
 
-13. **Dark Mode**
+11. **Dark Mode**
     - Theme switching
     - User preference storage
 
-14. **Accessibility**
+12. **Accessibility**
     - ARIA labels
     - Keyboard navigation
     - Screen reader support
 
-15. **Internationalization**
+13. **Internationalization**
     - Multi-language support
     - Date/time localization
 
 ## Known Limitations
 
 1. **User List**: No endpoint to list all users (needed for assignee selection dropdown)
-5. **File Uploads**: Not implemented
-6. **Email Notifications**: Not implemented
+2. **File Uploads**: Not implemented
+3. **Email Notifications**: Not implemented
+4. **Search**: Currently only searches issue titles, not descriptions
 
 ## Production Considerations
 
