@@ -12,14 +12,26 @@ export interface IssueUpdateEvent {
   projectId: number;
 }
 
+export interface CommentUpdateEvent {
+  eventType: 'CREATED' | 'UPDATED' | 'DELETED';
+  commentId: number;
+  issueId: number;
+  content: string | null;
+  authorId: number;
+  authorName: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class WebSocketService {
   private issueUpdates$ = new Subject<IssueUpdateEvent>();
+  private commentUpdates$ = new Subject<CommentUpdateEvent>();
   private connectionStatus$ = new BehaviorSubject<boolean>(false);
   private stompClient: Client | null = null;
   private issueSubscription: any = null; // Store subscription reference
+  private commentSubscriptions: Map<number, any> = new Map(); // Store comment subscriptions by issueId
+  private pendingCommentSubscriptions: Set<number> = new Set(); // Track issueIds that need subscription
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
@@ -60,6 +72,11 @@ export class WebSocketService {
           this.reconnectAttempts = 0;
           this.connectionStatus$.next(true);
           this.subscribeToIssues();
+          // Subscribe to any pending comment subscriptions
+          this.pendingCommentSubscriptions.forEach(issueId => {
+            this.subscribeToComments(issueId);
+          });
+          this.pendingCommentSubscriptions.clear();
         },
         onStompError: (frame: any) => {
           console.error('STOMP error:', frame);
@@ -124,6 +141,59 @@ export class WebSocketService {
     return this.issueUpdates$.asObservable();
   }
 
+  getCommentUpdates(issueId: number): Observable<CommentUpdateEvent> {
+    // Subscribe to comment updates for a specific issue
+    // If WebSocket is connected, subscribe immediately
+    // If not connected, add to pending subscriptions (will subscribe when connected)
+    this.subscribeToComments(issueId);
+    
+    return this.commentUpdates$.asObservable();
+  }
+
+  private subscribeToComments(issueId: number) {
+    // Don't subscribe if already subscribed to this issue
+    if (this.commentSubscriptions.has(issueId)) {
+      console.log(`Already subscribed to comments for issue ${issueId}`);
+      return;
+    }
+
+    // If not connected, add to pending subscriptions
+    if (!this.stompClient || !this.stompClient.connected) {
+      console.log(`WebSocket not connected, adding issue ${issueId} to pending subscriptions`);
+      this.pendingCommentSubscriptions.add(issueId);
+      return;
+    }
+
+    const topic = `/topic/issues/${issueId}/comments`;
+    console.log(`Subscribing to comment topic: ${topic}`);
+    const subscription = this.stompClient.subscribe(topic, (message) => {
+      try {
+        const event: CommentUpdateEvent = JSON.parse(message.body);
+        console.log(`Received comment update event for issue ${issueId}:`, event);
+        // Verify the event is for this issue (safety check)
+        if (event.issueId === issueId) {
+          this.commentUpdates$.next(event);
+        } else {
+          console.warn(`Received comment event for different issue. Expected ${issueId}, got ${event.issueId}`);
+        }
+      } catch (error) {
+        console.error('Error parsing comment WebSocket message:', error);
+      }
+    });
+
+    this.commentSubscriptions.set(issueId, subscription);
+    this.pendingCommentSubscriptions.delete(issueId); // Remove from pending if it was there
+    console.log(`Successfully subscribed to comment updates for issue ${issueId}`);
+  }
+
+  unsubscribeFromComments(issueId: number) {
+    const subscription = this.commentSubscriptions.get(issueId);
+    if (subscription) {
+      subscription.unsubscribe();
+      this.commentSubscriptions.delete(issueId);
+    }
+  }
+
   getConnectionStatus(): Observable<boolean> {
     return this.connectionStatus$.asObservable();
   }
@@ -133,6 +203,12 @@ export class WebSocketService {
   }
 
   disconnect() {
+    // Unsubscribe from all comment subscriptions
+    this.commentSubscriptions.forEach((subscription) => {
+      subscription.unsubscribe();
+    });
+    this.commentSubscriptions.clear();
+
     if (this.stompClient) {
       this.stompClient.deactivate();
       this.stompClient = null;

@@ -1,6 +1,7 @@
 package com.issuetracker.service;
 
 import com.issuetracker.dto.CommentDto;
+import com.issuetracker.dto.CommentUpdateEvent;
 import com.issuetracker.dto.CreateCommentRequest;
 import com.issuetracker.model.Comment;
 import com.issuetracker.model.Issue;
@@ -9,6 +10,7 @@ import com.issuetracker.repository.CommentRepository;
 import com.issuetracker.repository.IssueRepository;
 import com.issuetracker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,6 +35,9 @@ public class CommentService {
     @Autowired
     private AuthService authService;
     
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+    
     @Transactional
     public CommentDto createComment(Long issueId, CreateCommentRequest request) {
         Issue issue = issueRepository.findById(issueId)
@@ -55,7 +60,20 @@ public class CommentService {
         
         comment = commentRepository.save(comment);
         
-        return convertToDto(comment);
+        CommentDto dto = convertToDto(comment);
+        
+        // Publish WebSocket event
+        CommentUpdateEvent event = new CommentUpdateEvent(
+            "CREATED",
+            dto.getId(),
+            issueId,
+            dto.getContent(),
+            dto.getAuthorId(),
+            dto.getAuthorName()
+        );
+        messagingTemplate.convertAndSend("/topic/issues/" + issueId + "/comments", event);
+        
+        return dto;
     }
     
     public List<CommentDto> getCommentsByIssueId(Long issueId) {
@@ -84,7 +102,20 @@ public class CommentService {
         comment.setContent(request.getContent());
         comment = commentRepository.save(comment);
         
-        return convertToDto(comment);
+        CommentDto dto = convertToDto(comment);
+        
+        // Publish WebSocket event
+        CommentUpdateEvent event = new CommentUpdateEvent(
+            "UPDATED",
+            dto.getId(),
+            comment.getIssue().getId(),
+            dto.getContent(),
+            dto.getAuthorId(),
+            dto.getAuthorName()
+        );
+        messagingTemplate.convertAndSend("/topic/issues/" + comment.getIssue().getId() + "/comments", event);
+        
+        return dto;
     }
     
     @Transactional
@@ -100,7 +131,24 @@ public class CommentService {
             throw new RuntimeException("You can only delete your own comments");
         }
         
+        // Store values before deletion
+        Long issueId = comment.getIssue().getId();
+        Long deletedCommentId = comment.getId();
+        Long authorId = comment.getAuthor().getId();
+        String authorName = comment.getAuthor().getName();
+        
         commentRepository.delete(comment);
+        
+        // Publish WebSocket event
+        CommentUpdateEvent event = new CommentUpdateEvent(
+            "DELETED",
+            deletedCommentId,
+            issueId,
+            null,
+            authorId,
+            authorName
+        );
+        messagingTemplate.convertAndSend("/topic/issues/" + issueId + "/comments", event);
     }
     
     private String getCurrentUserEmail() {

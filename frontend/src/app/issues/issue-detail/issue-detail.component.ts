@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,8 @@ import { IssueService, Issue } from '../../services/issue.service';
 import { ProjectService, Project } from '../../services/project.service';
 import { CommentService, Comment } from '../../services/comment.service';
 import { AuthService } from '../../services/auth.service';
+import { WebSocketService, CommentUpdateEvent } from '../../services/websocket.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-issue-detail',
@@ -14,7 +16,7 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './issue-detail.component.html',
   styleUrl: './issue-detail.component.scss'
 })
-export class IssueDetailComponent implements OnInit {
+export class IssueDetailComponent implements OnInit, OnDestroy {
   issue: Issue | null = null;
   loading = false;
   errorMessage = '';
@@ -31,6 +33,7 @@ export class IssueDetailComponent implements OnInit {
   editingCommentId: number | null = null;
   editCommentContent = '';
   deletingCommentId: number | null = null;
+  private commentUpdateSubscription?: Subscription;
   
   editData: any = {
     title: '',
@@ -44,7 +47,8 @@ export class IssueDetailComponent implements OnInit {
     private router: Router,
     private issueService: IssueService,
     private commentService: CommentService,
-    private authService: AuthService
+    private authService: AuthService,
+    private wsService: WebSocketService
   ) {}
 
   ngOnInit() {
@@ -68,6 +72,7 @@ export class IssueDetailComponent implements OnInit {
         };
         this.loading = false;
         this.loadComments(id);
+        this.setupCommentWebSocketSubscription(id);
       },
       error: (error: any) => {
         this.errorMessage = 'Failed to load issue';
@@ -75,6 +80,77 @@ export class IssueDetailComponent implements OnInit {
         console.error(error);
       }
     });
+  }
+
+  private setupCommentWebSocketSubscription(issueId: number) {
+    // Unsubscribe from previous subscription if exists
+    if (this.commentUpdateSubscription) {
+      this.commentUpdateSubscription.unsubscribe();
+    }
+
+    // Subscribe to connection status and set up comment subscription when connected
+    const connectionSub = this.wsService.getConnectionStatus().subscribe(connected => {
+      if (connected) {
+        console.log(`WebSocket connected, setting up comment subscription for issue ${issueId}`);
+        this.subscribeToCommentUpdates(issueId);
+        connectionSub.unsubscribe(); // Only need to wait once
+      }
+    });
+
+    // If already connected, subscribe immediately
+    if (this.wsService.isConnected()) {
+      connectionSub.unsubscribe();
+      this.subscribeToCommentUpdates(issueId);
+    }
+  }
+
+  private subscribeToCommentUpdates(issueId: number) {
+    console.log(`Setting up comment WebSocket subscription for issue ${issueId}`);
+    // Subscribe to comment updates for this issue
+    this.commentUpdateSubscription = this.wsService.getCommentUpdates(issueId).subscribe({
+      next: (event: CommentUpdateEvent) => {
+        console.log(`Received comment update in component:`, event);
+        this.handleCommentUpdate(event);
+      },
+      error: (error) => {
+        console.warn('Comment WebSocket subscription error (non-critical):', error);
+      }
+    });
+  }
+
+  private handleCommentUpdate(event: CommentUpdateEvent) {
+    console.log('Handling comment update event:', event);
+    if (event.eventType === 'CREATED') {
+      // Reload comments to get the new comment with full data
+      if (this.issue) {
+        console.log('Reloading comments due to CREATED event');
+        this.loadComments(this.issue.id);
+      }
+    } else if (event.eventType === 'UPDATED') {
+      // Update the comment in the list
+      const index = this.comments.findIndex(c => c.id === event.commentId);
+      if (index !== -1 && event.content) {
+        console.log('Updating comment in list:', event.commentId);
+        this.comments[index] = {
+          ...this.comments[index],
+          content: event.content
+        };
+      }
+    } else if (event.eventType === 'DELETED') {
+      // Remove the comment from the list
+      console.log('Removing comment from list:', event.commentId);
+      this.comments = this.comments.filter(c => c.id !== event.commentId);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.commentUpdateSubscription) {
+      this.commentUpdateSubscription.unsubscribe();
+    }
+    // Unsubscribe from WebSocket topic when component is destroyed
+    if (this.issue) {
+      this.wsService.unsubscribeFromComments(this.issue.id);
+    }
   }
 
   loadComments(issueId: number) {
@@ -103,9 +179,10 @@ export class IssueDetailComponent implements OnInit {
 
     this.commentService.createComment(this.issue.id, { content: this.newComment.trim() }).subscribe({
       next: (comment) => {
-        this.comments.push(comment);
+        // Don't add comment here - WebSocket will handle it
         this.newComment = '';
         this.submittingComment = false;
+        // WebSocket event will trigger reload of comments
       },
       error: (error: any) => {
         this.commentError = error.error?.message || 'Failed to post comment';
@@ -136,6 +213,7 @@ export class IssueDetailComponent implements OnInit {
 
     this.commentService.updateComment(this.issue.id, commentId, { content: this.editCommentContent.trim() }).subscribe({
       next: (updatedComment) => {
+        // WebSocket will handle the update, but we can update locally for immediate feedback
         const index = this.comments.findIndex(c => c.id === commentId);
         if (index !== -1) {
           this.comments[index] = updatedComment;
@@ -164,6 +242,7 @@ export class IssueDetailComponent implements OnInit {
 
     this.commentService.deleteComment(this.issue.id, commentId).subscribe({
       next: () => {
+        // WebSocket will handle the deletion, but we can update locally for immediate feedback
         this.comments = this.comments.filter(c => c.id !== commentId);
         this.deletingCommentId = null;
       },
