@@ -63,8 +63,16 @@ export class IssueService {
     if (filters.sortDir) params = params.set('sortDir', filters.sortDir);
     if (filters.status) params = params.set('status', filters.status);
     if (filters.priority) params = params.set('priority', filters.priority);
-    if (filters.assigneeId !== undefined) params = params.set('assigneeId', filters.assigneeId.toString());
-    if (filters.projectId !== undefined) params = params.set('projectId', filters.projectId.toString());
+    if (filters.assigneeId !== undefined && filters.assigneeId !== null) {
+      params = params.set('assigneeId', filters.assigneeId.toString());
+    }
+    // Only add projectId if it's a valid number (not undefined, null, empty string, or string "null")
+    // Angular may convert select values to strings, so we need to handle both types
+    const projectId = filters.projectId as any;
+    if (projectId !== undefined && projectId !== null && projectId !== '' && 
+        projectId !== 'null' && typeof projectId === 'number') {
+      params = params.set('projectId', projectId.toString());
+    }
     if (filters.searchText) params = params.set('searchText', filters.searchText);
 
     return this.http.get<PageResponse<Issue>>(this.apiUrl, { params });

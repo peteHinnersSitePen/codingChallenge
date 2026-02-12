@@ -96,11 +96,20 @@ export class IssueListComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     
     try {
-      // Convert null values to undefined for the API
+      // Convert null/empty values to undefined for the API
       const apiFilters: any = { ...this.filters };
-      if (apiFilters.status === null) delete apiFilters.status;
-      if (apiFilters.priority === null) delete apiFilters.priority;
-      if (apiFilters.projectId === null) delete apiFilters.projectId;
+      const statusVal = apiFilters.status;
+      if (statusVal === null || statusVal === undefined || statusVal === 'null') delete apiFilters.status;
+      
+      const priorityVal = apiFilters.priority;
+      if (priorityVal === null || priorityVal === undefined || priorityVal === 'null') delete apiFilters.priority;
+      
+      const projectIdVal = apiFilters.projectId;
+      if (projectIdVal === null || projectIdVal === undefined || projectIdVal === '' || projectIdVal === 'null') delete apiFilters.projectId;
+      
+      const assigneeIdVal = apiFilters.assigneeId;
+      if (assigneeIdVal === null || assigneeIdVal === undefined || assigneeIdVal === 'null') delete apiFilters.assigneeId;
+      
       if (!apiFilters.searchText) delete apiFilters.searchText;
       
       this.issueService.getIssues(apiFilters).subscribe({
@@ -128,6 +137,35 @@ export class IssueListComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange() {
+    // Normalize empty string to undefined for "All Projects" option
+    // Angular may convert empty select values to strings, so we need to handle both types
+    const projectIdValue = this.filters.projectId as any;
+    if (projectIdValue === '' || projectIdValue === 'null' || projectIdValue === null) {
+      this.filters.projectId = undefined;
+    } else if (typeof projectIdValue === 'string' && !isNaN(Number(projectIdValue))) {
+      // Convert string number to actual number
+      this.filters.projectId = Number(projectIdValue);
+    }
+    
+    // Normalize string "null" to undefined for other filters
+    const statusValue = this.filters.status as any;
+    if (statusValue === 'null' || statusValue === null) {
+      this.filters.status = undefined;
+    }
+    
+    const priorityValue = this.filters.priority as any;
+    if (priorityValue === 'null' || priorityValue === null) {
+      this.filters.priority = undefined;
+    }
+    
+    const assigneeIdValue = this.filters.assigneeId as any;
+    if (assigneeIdValue === 'null' || assigneeIdValue === null) {
+      this.filters.assigneeId = undefined;
+    } else if (typeof assigneeIdValue === 'string' && !isNaN(Number(assigneeIdValue))) {
+      // Convert string number to actual number
+      this.filters.assigneeId = Number(assigneeIdValue);
+    }
+    
     this.filters.page = 0; // Reset to first page when filters change
     this.loadIssues();
   }
@@ -178,5 +216,19 @@ export class IssueListComponent implements OnInit, OnDestroy {
       status: 'OPEN'
     };
     this.createError = '';
+  }
+
+  hasActiveFilters(): boolean {
+    // Check if any filters are active (excluding pagination, sorting which are always present)
+    return !!(this.filters.status || 
+              this.filters.priority || 
+              this.filters.projectId || 
+              this.filters.assigneeId || 
+              (this.filters.searchText && this.filters.searchText.trim().length > 0));
+  }
+
+  formatStatus(status: string): string {
+    // Replace underscores with spaces and capitalize words
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 }

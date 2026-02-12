@@ -25,7 +25,7 @@
           <div class="detail-row">
             <strong>Status:</strong>
             <span class="status-badge" [class]="'status-' + issue.status.toLowerCase()">
-              {{ issue.status }}
+              {{ formatStatus(issue.status) }}
             </span>
           </div>
           <div class="detail-row">
@@ -106,6 +106,21 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div *ngIf="showDeleteConfirm" class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <h2>Delete Issue</h2>
+      <p>Are you sure you want to delete "<strong>{{ issue?.title }}</strong>"?</p>
+      <p class="warning-text">This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="deleting">
+          {{ deleting ? 'Deleting...' : 'Delete' }}
+        </button>
+      </div>
     </div>
   </div>
 </div>

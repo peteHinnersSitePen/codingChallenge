@@ -33,7 +33,7 @@
       <div class="filter-group">
         <label>Project</label>
         <select [(ngModel)]="filters.projectId" (change)="onFilterChange()">
-          <option [value]="null">All Projects</option>
+          <option value="">All Projects</option>
           <option *ngFor="let project of projects" [value]="project.id">{{ project.name }}</option>
         </select>
       </div>
@@ -62,7 +62,9 @@
   
   <div *ngIf="!loading && !errorMessage">
     <div *ngIf="issuesPage && issuesPage.content.length === 0" class="empty-state">
-      <p>No issues found. Create your first issue!</p>
+      <p *ngIf="hasActiveFilters()">No issues found matching your filters. Try adjusting your search criteria.</p>
+      <p *ngIf="!hasActiveFilters() && issuesPage.totalElements === 0">No issues found. Create your first issue!</p>
+      <p *ngIf="!hasActiveFilters() && issuesPage.totalElements > 0">No issues found.</p>
     </div>
     
     <div *ngIf="issuesPage && issuesPage.content.length > 0" class="issues-container">
@@ -70,7 +72,7 @@
         <div class="issue-header">
           <h3>{{ issue.title }}</h3>
           <span class="status-badge" [class]="'status-' + issue.status.toLowerCase()">
-            {{ issue.status }}
+            {{ formatStatus(issue.status) }}
           </span>
         </div>
         <p class="issue-description">{{ issue.description || 'No description' }}</p>

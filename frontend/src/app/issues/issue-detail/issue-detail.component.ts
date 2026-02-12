@@ -20,6 +20,7 @@ export class IssueDetailComponent implements OnInit {
   updating = false;
   updateError = '';
   deleting = false;
+  showDeleteConfirm = false;
   
   editData: any = {
     title: '',
@@ -92,11 +93,19 @@ export class IssueDetailComponent implements OnInit {
   }
 
   onDelete() {
-    if (!this.issue || !confirm('Are you sure you want to delete this issue?')) {
+    if (!this.issue) {
+      return;
+    }
+    this.showDeleteConfirm = true;
+  }
+
+  confirmDelete() {
+    if (!this.issue) {
       return;
     }
 
     this.deleting = true;
+    this.showDeleteConfirm = false;
     this.issueService.deleteIssue(this.issue.id).subscribe({
       next: () => {
         this.router.navigate(['/issues']);
@@ -106,5 +115,14 @@ export class IssueDetailComponent implements OnInit {
         this.deleting = false;
       }
     });
+  }
+
+  cancelDelete() {
+    this.showDeleteConfirm = false;
+  }
+
+  formatStatus(status: string): string {
+    // Replace underscores with spaces and capitalize words
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 }
