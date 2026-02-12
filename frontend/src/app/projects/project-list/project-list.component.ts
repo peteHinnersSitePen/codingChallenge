@@ -105,4 +105,8 @@ export class ProjectListComponent implements OnInit {
     this.searchText = '';
     this.loadProjects();
   }
+
+  hasActiveFilters(): boolean {
+    return !!(this.searchText && this.searchText.trim().length > 0);
+  }
 }

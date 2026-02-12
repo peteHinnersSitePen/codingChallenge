@@ -30,7 +30,8 @@
   
   <div class="project-list" *ngIf="!errorMessage" [class.loading-opacity]="loading">
     <div *ngIf="projects.length === 0" class="empty-state">
-      <p>No projects found. Create your first project!</p>
+      <p *ngIf="hasActiveFilters()">No projects found matching your filters. Try adjusting your search criteria.</p>
+      <p *ngIf="!hasActiveFilters()">No projects found. Create your first project!</p>
     </div>
     <div *ngFor="let project of projects" class="project-card" [routerLink]="['/projects', project.id]">
       <div class="project-header">
