@@ -3,8 +3,8 @@
     <nav>
       <h1>Issue Tracker</h1>
       <div class="nav-links">
-        <a (click)="navigateToProjects()" style="cursor: pointer;">Projects</a>
-        <a (click)="navigateToIssues()" style="cursor: pointer;">Issues</a>
+        <a (click)="navigateToProjects()" class="clickable-link">Projects</a>
+        <a (click)="navigateToIssues()" class="clickable-link">Issues</a>
         <div *ngIf="isAuthenticated" class="user-section">
           <span class="user-name">{{ currentUser?.name }}</span>
           <button class="btn btn-secondary btn-sm" (click)="logout()">Logout</button>

@@ -87,10 +87,40 @@ public class IssueService {
         Long projectId,
         String searchText
     ) {
-        Sort sort = Sort.by(sortDir != null && sortDir.equalsIgnoreCase("desc") 
+        // Determine sort direction
+        Sort.Direction direction = sortDir != null && sortDir.equalsIgnoreCase("desc") 
             ? Sort.Direction.DESC 
-            : Sort.Direction.ASC, 
-            sortBy != null ? sortBy : "createdAt");
+            : Sort.Direction.ASC;
+        
+        // Determine primary sort field
+        String primarySortField = sortBy != null ? sortBy : "createdAt";
+        
+        // Create sort with primary field and secondary sort by createdAt (descending) for consistent ordering
+        // When primary sort values are equal, secondary sort ensures stable ordering matching frontend default
+        // IMPORTANT: Always use createdAt DESC as secondary sort to match frontend default, regardless of primary sort direction
+        // For enum fields (priority, status), we need to ensure secondary sort is always applied
+        Sort sort;
+        if (primarySortField.equals("createdAt")) {
+            // If already sorting by createdAt, add ID as secondary for stability
+            sort = Sort.by(direction, "createdAt")
+                      .and(Sort.by(Sort.Direction.ASC, "id"));
+        } else if (primarySortField.equals("updatedAt")) {
+            // If sorting by updatedAt, use createdAt DESC as secondary (not updatedAt again)
+            sort = Sort.by(direction, "updatedAt")
+                      .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                      .and(Sort.by(Sort.Direction.ASC, "id"));
+        } else if (primarySortField.equals("priority") || primarySortField.equals("status")) {
+            // For enum fields, explicitly ensure secondary sort is applied
+            // Use both createdAt DESC and id ASC to guarantee stable ordering
+            sort = Sort.by(direction, primarySortField)
+                      .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                      .and(Sort.by(Sort.Direction.ASC, "id"));
+        } else {
+            // For other fields (title, etc.), use createdAt DESC as secondary
+            sort = Sort.by(direction, primarySortField)
+                      .and(Sort.by(Sort.Direction.DESC, "createdAt"))
+                      .and(Sort.by(Sort.Direction.ASC, "id"));
+        }
         
         Pageable pageable = PageRequest.of(page != null ? page : 0, size != null ? size : 20, sort);
         
