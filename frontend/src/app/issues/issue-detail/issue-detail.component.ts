@@ -101,7 +101,6 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
     // Subscribe to connection status and set up comment subscription when connected
     const connectionSub = this.wsService.getConnectionStatus().subscribe(connected => {
       if (connected) {
-        console.log(`WebSocket connected, setting up comment subscription for issue ${issueId}`);
         this.subscribeToCommentUpdates(issueId);
         connectionSub.unsubscribe(); // Only need to wait once
       }
@@ -115,11 +114,9 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   }
 
   private subscribeToCommentUpdates(issueId: number) {
-    console.log(`Setting up comment WebSocket subscription for issue ${issueId}`);
     // Subscribe to comment updates for this issue
     this.commentUpdateSubscription = this.wsService.getCommentUpdates(issueId).subscribe({
       next: (event: CommentUpdateEvent) => {
-        console.log(`Received comment update in component:`, event);
         this.handleCommentUpdate(event);
       },
       error: (error) => {
@@ -129,18 +126,15 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   }
 
   private handleCommentUpdate(event: CommentUpdateEvent) {
-    console.log('Handling comment update event:', event);
     if (event.eventType === 'CREATED') {
       // Reload comments to get the new comment with full data
       if (this.issue) {
-        console.log('Reloading comments due to CREATED event');
         this.loadComments(this.issue.id);
       }
     } else if (event.eventType === 'UPDATED') {
       // Update the comment in the list
       const index = this.comments.findIndex(c => c.id === event.commentId);
       if (index !== -1 && event.content) {
-        console.log('Updating comment in list:', event.commentId);
         this.comments[index] = {
           ...this.comments[index],
           content: event.content
@@ -148,7 +142,6 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
       }
     } else if (event.eventType === 'DELETED') {
       // Remove the comment from the list
-      console.log('Removing comment from list:', event.commentId);
       this.comments = this.comments.filter(c => c.id !== event.commentId);
     }
   }
@@ -159,7 +152,6 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
       next: (event: IssueUpdateEvent) => {
         // Only reload if this update is for the current issue
         if (this.issue && event.issueId === this.issue.id && event.eventType === 'UPDATED') {
-          console.log('Issue updated via WebSocket, reloading issue:', event.issueId);
           this.loadIssue(this.issue.id);
         }
       },

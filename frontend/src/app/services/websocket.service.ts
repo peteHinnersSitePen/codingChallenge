@@ -81,7 +81,6 @@ export class WebSocketService {
           // Uncomment for debugging: console.log('STOMP:', str);
         },
         onConnect: () => {
-          console.log('WebSocket connected');
           this.isConnecting = false;
           this.reconnectAttempts = 0;
           this.connectionStatus$.next(true);
@@ -104,13 +103,11 @@ export class WebSocketService {
           this.attemptReconnect();
         },
         onWebSocketClose: () => {
-          console.log('WebSocket disconnected');
           this.isConnecting = false;
           this.connectionStatus$.next(false);
           this.attemptReconnect();
         },
         onDisconnect: () => {
-          console.log('STOMP disconnected');
           this.connectionStatus$.next(false);
         }
       });
@@ -148,7 +145,6 @@ export class WebSocketService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       setTimeout(() => {
-        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
         this.connect();
       }, this.reconnectDelay);
     } else {
@@ -172,23 +168,19 @@ export class WebSocketService {
   private subscribeToComments(issueId: number) {
     // Don't subscribe if already subscribed to this issue
     if (this.commentSubscriptions.has(issueId)) {
-      console.log(`Already subscribed to comments for issue ${issueId}`);
       return;
     }
 
     // If not connected, add to pending subscriptions
     if (!this.stompClient || !this.stompClient.connected) {
-      console.log(`WebSocket not connected, adding issue ${issueId} to pending subscriptions`);
       this.pendingCommentSubscriptions.add(issueId);
       return;
     }
 
     const topic = `/topic/issues/${issueId}/comments`;
-    console.log(`Subscribing to comment topic: ${topic}`);
     const subscription = this.stompClient.subscribe(topic, (message) => {
       try {
         const event: CommentUpdateEvent = JSON.parse(message.body);
-        console.log(`Received comment update event for issue ${issueId}:`, event);
         // Verify the event is for this issue (safety check)
         if (event.issueId === issueId) {
           this.commentUpdates$.next(event);
@@ -202,7 +194,6 @@ export class WebSocketService {
 
     this.commentSubscriptions.set(issueId, subscription);
     this.pendingCommentSubscriptions.delete(issueId); // Remove from pending if it was there
-    console.log(`Successfully subscribed to comment updates for issue ${issueId}`);
   }
 
   unsubscribeFromComments(issueId: number) {

@@ -86,8 +86,7 @@ public class IssueService {
             try {
                 activityLogService.createActivityLog(issue, ActivityType.ISSUE_CREATED, null, null);
             } catch (Exception e) {
-                // Log but don't fail the issue creation if activity log fails
-                System.err.println("Failed to create activity log: " + e.getMessage());
+                // Activity log creation failed - non-critical, continue with issue creation
             }
         }
         
@@ -249,8 +248,7 @@ public class IssueService {
                     activityLogService.createActivityLog(issue, ActivityType.ASSIGNEE_CHANGED, oldAssigneeName, newAssigneeName);
                 }
             } catch (Exception e) {
-                // Log but don't fail the issue update if activity log fails
-                System.err.println("Failed to create activity log: " + e.getMessage());
+                // Activity log creation failed - non-critical, continue with issue update
             }
         }
         

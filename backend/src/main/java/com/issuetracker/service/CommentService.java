@@ -71,7 +71,7 @@ public class CommentService {
             try {
                 activityLogService.createActivityLog(issue, ActivityType.COMMENT_ADDED, null, null);
             } catch (Exception e) {
-                System.err.println("Failed to create activity log for comment: " + e.getMessage());
+                // Activity log creation failed - non-critical, continue with comment creation
             }
         }
         
@@ -125,7 +125,7 @@ public class CommentService {
                 String newTruncated = newContent != null && newContent.length() > 200 ? newContent.substring(0, 200) + "..." : newContent;
                 activityLogService.createActivityLog(issue, ActivityType.COMMENT_EDITED, oldTruncated, newTruncated);
             } catch (Exception e) {
-                System.err.println("Failed to create activity log for comment edit: " + e.getMessage());
+                // Activity log creation failed - non-critical, continue with comment update
             }
         }
         
@@ -173,7 +173,7 @@ public class CommentService {
             try {
                 activityLogService.createActivityLog(issue, ActivityType.COMMENT_DELETED, null, null);
             } catch (Exception e) {
-                System.err.println("Failed to create activity log for comment delete: " + e.getMessage());
+                // Activity log creation failed - non-critical, continue with comment deletion
             }
         }
         
