@@ -1,10 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { RouterOutlet, RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, CommonModule],
   template: `
     <div class="app-container">
       <header>
@@ -13,7 +15,11 @@ import { RouterOutlet, RouterLink } from '@angular/router';
           <div class="nav-links">
             <a routerLink="/projects">Projects</a>
             <a routerLink="/issues">Issues</a>
-            <a routerLink="/login">Login</a>
+            <div *ngIf="isAuthenticated" class="user-section">
+              <span class="user-name">{{ currentUser?.name }}</span>
+              <button class="btn btn-secondary btn-sm" (click)="logout()">Logout</button>
+            </div>
+            <a *ngIf="!isAuthenticated" routerLink="/login">Login</a>
           </div>
         </nav>
       </header>
@@ -46,6 +52,7 @@ import { RouterOutlet, RouterLink } from '@angular/router';
     .nav-links {
       display: flex;
       gap: 20px;
+      align-items: center;
     }
     .nav-links a {
       text-decoration: none;
@@ -55,6 +62,19 @@ import { RouterOutlet, RouterLink } from '@angular/router';
     .nav-links a:hover {
       color: #007bff;
     }
+    .user-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .user-name {
+      color: #333;
+      font-weight: 500;
+    }
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.875rem;
+    }
     main {
       max-width: 1200px;
       margin: 0 auto;
@@ -62,6 +82,21 @@ import { RouterOutlet, RouterLink } from '@angular/router';
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'Issue Tracker';
+  isAuthenticated = false;
+  currentUser: any = null;
+
+  constructor(private authService: AuthService) {}
+
+  ngOnInit() {
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      this.isAuthenticated = !!user;
+    });
+  }
+
+  logout() {
+    this.authService.logout();
+  }
 }
