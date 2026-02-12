@@ -20,6 +20,16 @@ nav {
 nav h1 {
   font-size: 1.5rem;
   color: #007bff;
+  margin: 0;
+}
+
+nav h1.clickable-link {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+nav h1.clickable-link:hover {
+  opacity: 0.8;
 }
 
 .nav-links {

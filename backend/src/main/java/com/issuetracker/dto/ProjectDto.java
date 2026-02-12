@@ -8,15 +8,17 @@ public class ProjectDto {
     private Long ownerId;
     private String ownerName;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     
     public ProjectDto() {}
     
-    public ProjectDto(Long id, String name, Long ownerId, String ownerName, LocalDateTime createdAt) {
+    public ProjectDto(Long id, String name, Long ownerId, String ownerName, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.ownerId = ownerId;
         this.ownerName = ownerName;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
     
     // Getters and Setters
@@ -58,5 +60,13 @@ public class ProjectDto {
     
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

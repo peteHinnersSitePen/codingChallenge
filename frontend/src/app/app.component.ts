@@ -38,4 +38,8 @@ export class AppComponent implements OnInit {
   navigateToIssues() {
     this.router.navigate(['/issues']);
   }
+
+  navigateToHome() {
+    this.router.navigate(['/projects']);
+  }
 }

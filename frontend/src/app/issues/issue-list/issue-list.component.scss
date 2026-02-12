@@ -36,6 +36,40 @@
   border-radius: 4px;
 }
 
+.search-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.search-wrapper input {
+  padding-right: 2rem;
+  width: 100%;
+}
+
+.search-clear {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  width: 1.2rem;
+  height: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-clear:hover {
+  color: #333;
+}
+
 .issues-container {
   display: grid;
   gap: 1rem;

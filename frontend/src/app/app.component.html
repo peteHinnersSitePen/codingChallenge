@@ -1,7 +1,7 @@
 <div class="app-container">
   <header>
     <nav>
-      <h1>Issue Tracker</h1>
+      <h1 (click)="navigateToHome()" class="clickable-link">Issue Tracker</h1>
       <div class="nav-links">
         <a (click)="navigateToProjects()" class="clickable-link">Projects</a>
         <a (click)="navigateToIssues()" class="clickable-link">Issues</a>

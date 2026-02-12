@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface Project {
@@ -8,6 +8,7 @@ export interface Project {
   ownerId: number;
   ownerName: string;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CreateProjectRequest {
@@ -22,8 +23,18 @@ export class ProjectService {
 
   constructor(private http: HttpClient) {}
 
-  getAllProjects(): Observable<Project[]> {
-    return this.http.get<Project[]>(this.apiUrl);
+  getAllProjects(sortBy?: string, sortDir?: string, searchText?: string): Observable<Project[]> {
+    let params = new HttpParams();
+    if (sortBy) {
+      params = params.set('sortBy', sortBy);
+    }
+    if (sortDir) {
+      params = params.set('sortDir', sortDir);
+    }
+    if (searchText && searchText.trim()) {
+      params = params.set('searchText', searchText.trim());
+    }
+    return this.http.get<Project[]>(this.apiUrl, { params });
   }
 
   getProjectById(id: number): Observable<Project> {

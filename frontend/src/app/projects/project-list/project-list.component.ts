@@ -20,6 +20,10 @@ export class ProjectListComponent implements OnInit {
   newProjectName = '';
   creating = false;
   createError = '';
+  
+  sortBy: string = 'name'; // Default to alphabetical
+  sortDir: string = 'asc';
+  searchText: string = '';
 
   constructor(
     private projectService: ProjectService,
@@ -32,9 +36,13 @@ export class ProjectListComponent implements OnInit {
   }
 
   loadProjects() {
-    this.loading = true;
+    // Only show loading spinner on initial load (when projects array is empty)
+    const isInitialLoad = this.projects.length === 0;
+    if (isInitialLoad) {
+      this.loading = true;
+    }
     this.errorMessage = '';
-    this.projectService.getAllProjects().subscribe({
+    this.projectService.getAllProjects(this.sortBy, this.sortDir, this.searchText).subscribe({
       next: (projects) => {
         this.projects = projects;
         this.loading = false;
@@ -83,5 +91,18 @@ export class ProjectListComponent implements OnInit {
     this.showCreateModal = false;
     this.newProjectName = '';
     this.createError = '';
+  }
+
+  onSortChange() {
+    this.loadProjects();
+  }
+
+  onSearchChange() {
+    this.loadProjects();
+  }
+
+  clearSearch() {
+    this.searchText = '';
+    this.loadProjects();
   }
 }

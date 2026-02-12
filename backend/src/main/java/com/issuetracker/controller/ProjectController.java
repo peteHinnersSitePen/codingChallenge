@@ -34,8 +34,11 @@ public class ProjectController {
     }
     
     @GetMapping
-    public ResponseEntity<List<ProjectDto>> getAllProjects() {
-        List<ProjectDto> projects = projectService.getAllProjects();
+    public ResponseEntity<List<ProjectDto>> getAllProjects(
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String searchText) {
+        List<ProjectDto> projects = projectService.getAllProjects(sortBy, sortDir, searchText);
         return ResponseEntity.ok(projects);
     }
     

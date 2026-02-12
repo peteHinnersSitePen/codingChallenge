@@ -231,6 +231,11 @@ export class IssueListComponent implements OnInit, OnDestroy {
               (this.filters.searchText && this.filters.searchText.trim().length > 0));
   }
 
+  clearSearch() {
+    this.filters.searchText = '';
+    this.onFilterChange();
+  }
+
   formatStatus(status: string): string {
     // Replace underscores with spaces and capitalize words
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());

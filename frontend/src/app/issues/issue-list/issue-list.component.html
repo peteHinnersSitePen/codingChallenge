@@ -9,7 +9,10 @@
     <div class="filter-row">
       <div class="filter-group">
         <label>Search</label>
-        <input type="text" [(ngModel)]="filters.searchText" (input)="onFilterChange()" placeholder="Search by title...">
+        <div class="search-wrapper">
+          <input type="text" [(ngModel)]="filters.searchText" (input)="onFilterChange()" placeholder="Search by title...">
+          <button *ngIf="filters.searchText" type="button" class="search-clear" (click)="clearSearch()" aria-label="Clear search">×</button>
+        </div>
       </div>
       <div class="filter-group">
         <label>Status</label>
