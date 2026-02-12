@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 import { ProjectService, Project } from '../../services/project.service';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-project-list',
@@ -20,7 +21,11 @@ export class ProjectListComponent implements OnInit {
   creating = false;
   createError = '';
 
-  constructor(private projectService: ProjectService) {}
+  constructor(
+    private projectService: ProjectService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadProjects();
@@ -35,9 +40,19 @@ export class ProjectListComponent implements OnInit {
         this.loading = false;
       },
       error: (error: any) => {
-        this.errorMessage = 'Failed to load projects';
+        console.error('Error loading projects:', error);
+        if (error.status === 401 || error.status === 403) {
+          // Token expired or invalid - redirect to login
+          this.errorMessage = 'Session expired. Please log in again.';
+          setTimeout(() => {
+            this.authService.logout();
+          }, 2000);
+        } else if (error.status === 0) {
+          this.errorMessage = 'Cannot connect to backend. Please ensure the backend server is running.';
+        } else {
+          this.errorMessage = error.error?.message || `Failed to load projects (${error.status || 'unknown error'})`;
+        }
         this.loading = false;
-        console.error(error);
       }
     });
   }

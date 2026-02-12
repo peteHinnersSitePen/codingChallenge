@@ -63,7 +63,13 @@ export class AuthService {
   }
 
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) {
+      return false;
+    }
+    // Basic check - token exists. Backend will validate if it's expired/invalid
+    // If backend returns 401/403, the app should handle it
+    return true;
   }
 
   getCurrentUser(): AuthResponse | null {

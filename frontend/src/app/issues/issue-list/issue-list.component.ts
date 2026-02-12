@@ -43,20 +43,33 @@ export class IssueListComponent implements OnInit, OnDestroy {
     private issueService: IssueService,
     private projectService: ProjectService,
     private wsService: WebSocketService
-  ) {}
+  ) {
+    console.log('IssueListComponent constructor called');
+  }
 
   ngOnInit() {
-    this.loadProjects();
+    console.log('IssueListComponent initialized');
+    // Load issues first (main content)
     this.loadIssues();
     
-    // Subscribe to WebSocket updates (for real-time notifications)
-    // Note: Full WebSocket/STOMP implementation requires additional packages
-    // This structure is ready for full implementation
-    this.wsSubscription = this.wsService.getIssueUpdates().subscribe(event => {
-      console.log('Issue update received:', event);
-      // Reload issues when updates are received
-      this.loadIssues();
-    });
+    // Load projects separately (non-blocking, only needed for filters)
+    this.loadProjects();
+    
+    // Subscribe to WebSocket updates for real-time notifications
+    try {
+      this.wsSubscription = this.wsService.getIssueUpdates().subscribe({
+        next: (event) => {
+          console.log('Issue update received:', event);
+          // Reload issues when updates are received
+          this.loadIssues();
+        },
+        error: (error) => {
+          console.warn('WebSocket subscription error (non-critical):', error);
+        }
+      });
+    } catch (error) {
+      console.warn('Failed to subscribe to WebSocket updates (non-critical):', error);
+    }
   }
 
   ngOnDestroy() {
@@ -68,36 +81,55 @@ export class IssueListComponent implements OnInit, OnDestroy {
   loadProjects() {
     this.projectService.getAllProjects().subscribe({
       next: (projects) => {
+        console.log('Projects loaded successfully:', projects);
         this.projects = projects;
       },
       error: (error: any) => {
-        console.error('Failed to load projects', error);
+        console.warn('Failed to load projects (non-critical - component will still work):', error);
+        // Don't block the component if projects fail to load
+        // The user can still view issues, they just won't be able to filter by project or create new issues
+        this.projects = [];
+        // Don't set errorMessage here - projects are optional for viewing issues
       }
     });
   }
 
   loadIssues() {
+    console.log('Loading issues with filters:', this.filters);
     this.loading = true;
     this.errorMessage = '';
     
-    // Convert null values to undefined for the API
-    const apiFilters: any = { ...this.filters };
-    if (apiFilters.status === null) delete apiFilters.status;
-    if (apiFilters.priority === null) delete apiFilters.priority;
-    if (apiFilters.projectId === null) delete apiFilters.projectId;
-    if (!apiFilters.searchText) delete apiFilters.searchText;
-    
-    this.issueService.getIssues(apiFilters).subscribe({
-      next: (page) => {
-        this.issuesPage = page;
-        this.loading = false;
-      },
-      error: (error: any) => {
-        this.errorMessage = 'Failed to load issues';
-        this.loading = false;
-        console.error(error);
-      }
-    });
+    try {
+      // Convert null values to undefined for the API
+      const apiFilters: any = { ...this.filters };
+      if (apiFilters.status === null) delete apiFilters.status;
+      if (apiFilters.priority === null) delete apiFilters.priority;
+      if (apiFilters.projectId === null) delete apiFilters.projectId;
+      if (!apiFilters.searchText) delete apiFilters.searchText;
+      
+      this.issueService.getIssues(apiFilters).subscribe({
+        next: (page) => {
+          console.log('Issues loaded successfully:', page);
+          this.issuesPage = page;
+          this.loading = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading issues:', error);
+          if (error.status === 401 || error.status === 403) {
+            this.errorMessage = 'Authentication failed. Please log in again.';
+          } else if (error.status === 0) {
+            this.errorMessage = 'Cannot connect to backend. Please ensure the backend server is running on http://localhost:8080';
+          } else {
+            this.errorMessage = error.error?.message || `Failed to load issues (${error.status || 'unknown error'})`;
+          }
+          this.loading = false;
+        }
+      });
+    } catch (error) {
+      console.error('Exception in loadIssues:', error);
+      this.errorMessage = 'Failed to load issues';
+      this.loading = false;
+    }
   }
 
   onFilterChange() {

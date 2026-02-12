@@ -53,10 +53,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             userDetails, null, userDetails.getAuthorities());
                     authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                    logger.debug("Successfully authenticated user: " + email);
+                } else {
+                    logger.warn("Token validation failed for user: " + email);
                 }
             } catch (Exception e) {
-                logger.error("Error validating token", e);
+                logger.error("Error validating token for email: " + email, e);
+                // Don't set authentication - let Spring Security handle unauthorized access
             }
+        } else if (authorizationHeader != null && !authorizationHeader.startsWith("Bearer ")) {
+            logger.warn("Invalid Authorization header format");
         }
         
         chain.doFilter(request, response);

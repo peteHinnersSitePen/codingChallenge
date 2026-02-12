@@ -43,9 +43,11 @@ public class AuthService implements UserDetailsService {
         User user = new User();
         user.setName(signupRequest.getName());
         user.setEmail(signupRequest.getEmail());
-        user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
+        String encodedPassword = passwordEncoder.encode(signupRequest.getPassword());
+        user.setPassword(encodedPassword);
         
         user = userRepository.save(user);
+        System.out.println("User created: " + user.getEmail() + " (ID: " + user.getId() + ")");
         
         String token = jwtUtil.generateToken(user.getEmail());
         
@@ -53,15 +55,28 @@ public class AuthService implements UserDetailsService {
     }
     
     public AuthResponse login(AuthRequest authRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(
-                authRequest.getEmail(),
-                authRequest.getPassword()
-            )
-        );
+        System.out.println("Login attempt for email: " + authRequest.getEmail());
         
-        User user = userRepository.findByEmail(authRequest.getEmail())
-            .orElseThrow(() -> new RuntimeException("User not found"));
+        // Check if user exists first
+        User user = userRepository.findByEmail(authRequest.getEmail()).orElse(null);
+        if (user == null) {
+            System.out.println("User not found in database");
+            throw new RuntimeException("Invalid email or password");
+        }
+        System.out.println("User found: " + user.getEmail() + " (ID: " + user.getId() + ")");
+        
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    authRequest.getEmail(),
+                    authRequest.getPassword()
+                )
+            );
+            System.out.println("Authentication successful");
+        } catch (Exception e) {
+            System.out.println("Authentication failed: " + e.getMessage());
+            throw new RuntimeException("Invalid email or password", e);
+        }
         
         String token = jwtUtil.generateToken(user.getEmail());
         
@@ -70,8 +85,14 @@ public class AuthService implements UserDetailsService {
     
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        System.out.println("loadUserByUsername called for: " + email);
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+            .orElseThrow(() -> {
+                System.out.println("User not found in loadUserByUsername: " + email);
+                return new UsernameNotFoundException("User not found with email: " + email);
+            });
+        
+        System.out.println("User loaded: " + user.getEmail() + " (ID: " + user.getId() + ")");
         
         return org.springframework.security.core.userdetails.User.builder()
             .username(user.getEmail())

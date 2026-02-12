@@ -1,3 +1,6 @@
+// Polyfill for 'global' (required by some Node.js dependencies like sockjs-client)
+(window as any).global = window;
+
 import { bootstrapApplication } from '@angular/platform-browser';
 import { AppComponent } from './app/app.component';
 import { provideRouter } from '@angular/router';

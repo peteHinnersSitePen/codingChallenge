@@ -19,3 +19,6 @@ target/
 # Build outputs
 dist/
 .angular/
+
+# Database files
+backend/data/

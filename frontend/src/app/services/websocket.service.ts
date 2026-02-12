@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 export interface IssueUpdateEvent {
   eventType: 'CREATED' | 'UPDATED' | 'DELETED';
@@ -15,43 +17,120 @@ export interface IssueUpdateEvent {
 })
 export class WebSocketService {
   private issueUpdates$ = new Subject<IssueUpdateEvent>();
-  private eventSource: EventSource | null = null;
+  private connectionStatus$ = new BehaviorSubject<boolean>(false);
+  private stompClient: Client | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
+  private isConnecting = false;
 
   constructor() {
-    // For MVP, using Server-Sent Events (SSE) which is simpler than WebSocket
-    // This can be upgraded to WebSocket/STOMP later
-    this.connectSSE();
+    // Delay connection to avoid blocking app initialization
+    setTimeout(() => {
+      try {
+        this.connect();
+      } catch (error) {
+        console.warn('WebSocket connection failed (non-critical):', error);
+      }
+    }, 500);
   }
 
-  private connectSSE() {
+  private connect() {
+    if (this.isConnecting || (this.stompClient && this.stompClient.connected)) {
+      return;
+    }
+
     try {
-      // Using SSE endpoint (we'll need to create this in backend)
-      // For now, this is a placeholder - WebSocket implementation would require STOMP client
-      // For MVP, we'll use polling or implement a simpler WebSocket approach
-      console.log('WebSocket service initialized - real-time updates will be available');
+      this.isConnecting = true;
+
+      // Create SockJS connection
+      const socket = new SockJS('http://localhost:8080/ws');
+      this.stompClient = new Client({
+        webSocketFactory: () => socket as any,
+        reconnectDelay: this.reconnectDelay,
+        heartbeatIncoming: 4000,
+        heartbeatOutgoing: 4000,
+        debug: (str: string) => {
+          // Uncomment for debugging: console.log('STOMP:', str);
+        },
+        onConnect: () => {
+          console.log('WebSocket connected');
+          this.isConnecting = false;
+          this.reconnectAttempts = 0;
+          this.connectionStatus$.next(true);
+          this.subscribeToIssues();
+        },
+        onStompError: (frame: any) => {
+          console.error('STOMP error:', frame);
+          this.isConnecting = false;
+          this.connectionStatus$.next(false);
+          this.attemptReconnect();
+        },
+        onWebSocketClose: () => {
+          console.log('WebSocket disconnected');
+          this.isConnecting = false;
+          this.connectionStatus$.next(false);
+          this.attemptReconnect();
+        },
+        onDisconnect: () => {
+          console.log('STOMP disconnected');
+          this.connectionStatus$.next(false);
+        }
+      });
+
+      this.stompClient.activate();
     } catch (error) {
-      console.error('Failed to initialize WebSocket service:', error);
+      console.error('Failed to initialize WebSocket connection:', error);
+      this.isConnecting = false;
+      this.connectionStatus$.next(false);
+      // Don't block the app if WebSocket fails - it's optional for real-time updates
     }
   }
 
-  // Placeholder method - in production, this would connect via WebSocket/STOMP
-  // For MVP, we can use polling or implement a simpler solution
+  private subscribeToIssues() {
+    if (!this.stompClient || !this.stompClient.connected) {
+      return;
+    }
+
+    this.stompClient.subscribe('/topic/issues', (message) => {
+      try {
+        const event: IssueUpdateEvent = JSON.parse(message.body);
+        console.log('Issue update received:', event);
+        this.issueUpdates$.next(event);
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    });
+  }
+
+  private attemptReconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      setTimeout(() => {
+        console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+        this.connect();
+      }, this.reconnectDelay);
+    } else {
+      console.error('Max reconnection attempts reached');
+    }
+  }
+
   getIssueUpdates(): Observable<IssueUpdateEvent> {
     return this.issueUpdates$.asObservable();
   }
 
-  // Method to manually trigger updates (for MVP - can be replaced with real WebSocket)
-  notifyIssueUpdate(event: IssueUpdateEvent) {
-    this.issueUpdates$.next(event);
+  getConnectionStatus(): Observable<boolean> {
+    return this.connectionStatus$.asObservable();
+  }
+
+  isConnected(): boolean {
+    return this.stompClient?.connected || false;
   }
 
   disconnect() {
-    if (this.eventSource) {
-      this.eventSource.close();
-      this.eventSource = null;
+    if (this.stompClient) {
+      this.stompClient.deactivate();
+      this.stompClient = null;
     }
   }
 }
