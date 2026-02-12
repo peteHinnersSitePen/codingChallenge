@@ -46,9 +46,15 @@ A full-stack Issue Tracker application built with Angular 20 and Java (JDK 17), 
 - Status workflow (Open → In Progress → Closed)
 - Priority levels (Low, Medium, High, Critical)
 - Issue creator tracking
-- Comments system with full CRUD operations
-- Real-time comment updates via WebSocket
-- Comment editing and deletion (author-only)
+
+✅ **Comments**
+- Full CRUD operations for comments on issues
+- Comment thread UI in issue detail view
+- Real-time comment updates via WebSocket (create, update, delete)
+- Comment editing and deletion (author-only authorization)
+- Click-to-reveal edit/delete actions for better UX
+- Comment author and timestamp display
+- Seamless integration with issue detail page
 
 ✅ **Real-time Updates**
 - Full WebSocket implementation with STOMP protocol
