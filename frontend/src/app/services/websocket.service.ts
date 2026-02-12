@@ -19,6 +19,7 @@ export class WebSocketService {
   private issueUpdates$ = new Subject<IssueUpdateEvent>();
   private connectionStatus$ = new BehaviorSubject<boolean>(false);
   private stompClient: Client | null = null;
+  private issueSubscription: any = null; // Store subscription reference
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
@@ -92,10 +93,14 @@ export class WebSocketService {
       return;
     }
 
-    this.stompClient.subscribe('/topic/issues', (message) => {
+    // Unsubscribe from previous subscription if it exists
+    if (this.issueSubscription) {
+      this.issueSubscription.unsubscribe();
+    }
+    
+    this.issueSubscription = this.stompClient.subscribe('/topic/issues', (message) => {
       try {
         const event: IssueUpdateEvent = JSON.parse(message.body);
-        console.log('Issue update received:', event);
         this.issueUpdates$.next(event);
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);

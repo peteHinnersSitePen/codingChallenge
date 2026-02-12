@@ -20,6 +20,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.stream.Collectors;
 
@@ -58,7 +60,20 @@ public class IssueService {
         
         issue = issueRepository.save(issue);
         
-        return convertToDto(issue);
+        IssueDto dto = convertToDto(issue);
+        
+        // Publish WebSocket event after transaction commits
+        IssueUpdateEvent event = new IssueUpdateEvent(
+            "CREATED",
+            dto.getId(),
+            dto.getTitle(),
+            dto.getStatus(),
+            dto.getPriority(),
+            dto.getProjectId()
+        );
+        messagingTemplate.convertAndSend("/topic/issues", event);
+        
+        return dto;
     }
     
     public PageResponse<IssueDto> getIssues(

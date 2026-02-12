@@ -43,12 +43,9 @@ export class IssueListComponent implements OnInit, OnDestroy {
     private issueService: IssueService,
     private projectService: ProjectService,
     private wsService: WebSocketService
-  ) {
-    console.log('IssueListComponent constructor called');
-  }
+  ) {}
 
   ngOnInit() {
-    console.log('IssueListComponent initialized');
     // Load issues first (main content)
     this.loadIssues();
     
@@ -56,20 +53,21 @@ export class IssueListComponent implements OnInit, OnDestroy {
     this.loadProjects();
     
     // Subscribe to WebSocket updates for real-time notifications
-    try {
-      this.wsSubscription = this.wsService.getIssueUpdates().subscribe({
-        next: (event) => {
-          console.log('Issue update received:', event);
-          // Reload issues when updates are received
-          this.loadIssues();
-        },
-        error: (error) => {
-          console.warn('WebSocket subscription error (non-critical):', error);
-        }
-      });
-    } catch (error) {
-      console.warn('Failed to subscribe to WebSocket updates (non-critical):', error);
-    }
+    this.setupWebSocketSubscription();
+  }
+
+  private setupWebSocketSubscription() {
+    // Subscribe to WebSocket updates - RxJS Subject will deliver events
+    // even if they arrive after subscription
+    this.wsSubscription = this.wsService.getIssueUpdates().subscribe({
+      next: (event) => {
+        // Reload issues when updates are received
+        this.loadIssues();
+      },
+      error: (error) => {
+        console.warn('WebSocket subscription error (non-critical):', error);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -81,7 +79,6 @@ export class IssueListComponent implements OnInit, OnDestroy {
   loadProjects() {
     this.projectService.getAllProjects().subscribe({
       next: (projects) => {
-        console.log('Projects loaded successfully:', projects);
         this.projects = projects;
       },
       error: (error: any) => {
@@ -95,7 +92,6 @@ export class IssueListComponent implements OnInit, OnDestroy {
   }
 
   loadIssues() {
-    console.log('Loading issues with filters:', this.filters);
     this.loading = true;
     this.errorMessage = '';
     
@@ -109,7 +105,6 @@ export class IssueListComponent implements OnInit, OnDestroy {
       
       this.issueService.getIssues(apiFilters).subscribe({
         next: (page) => {
-          console.log('Issues loaded successfully:', page);
           this.issuesPage = page;
           this.loading = false;
         },

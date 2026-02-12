@@ -31,25 +31,11 @@ export class AppComponent implements OnInit {
     this.authService.logout();
   }
 
-  navigateToProjects(event?: Event) {
-    if (event) {
-      event.preventDefault();
-    }
-    console.log('Navigating to projects');
-    this.router.navigate(['/projects']).then(
-      (success) => console.log('Navigation to /projects:', success),
-      (error) => console.error('Navigation error to /projects:', error)
-    );
+  navigateToProjects() {
+    this.router.navigate(['/projects']);
   }
 
-  navigateToIssues(event?: Event) {
-    if (event) {
-      event.preventDefault();
-    }
-    console.log('Navigating to issues');
-    this.router.navigate(['/issues']).then(
-      (success) => console.log('Navigation to /issues:', success),
-      (error) => console.error('Navigation error to /issues:', error)
-    );
+  navigateToIssues() {
+    this.router.navigate(['/issues']);
   }
 }
