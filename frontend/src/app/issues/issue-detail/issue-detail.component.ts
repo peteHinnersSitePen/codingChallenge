@@ -5,8 +5,9 @@ import { FormsModule } from '@angular/forms';
 import { IssueService, Issue } from '../../services/issue.service';
 import { ProjectService, Project } from '../../services/project.service';
 import { CommentService, Comment } from '../../services/comment.service';
+import { ActivityLogService, ActivityLog } from '../../services/activity-log.service';
 import { AuthService } from '../../services/auth.service';
-import { WebSocketService, CommentUpdateEvent, IssueUpdateEvent } from '../../services/websocket.service';
+import { WebSocketService, CommentUpdateEvent, IssueUpdateEvent, ActivityLogUpdateEvent } from '../../services/websocket.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -34,8 +35,11 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   editCommentContent = '';
   deletingCommentId: number | null = null;
   selectedCommentId: number | null = null;
+  activityLogs: ActivityLog[] = [];
+  loadingActivityLogs = false;
   private commentUpdateSubscription?: Subscription;
   private issueUpdateSubscription?: Subscription;
+  private activityLogUpdateSubscription?: Subscription;
   
   editData: any = {
     title: '',
@@ -49,6 +53,7 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private issueService: IssueService,
     private commentService: CommentService,
+    private activityLogService: ActivityLogService,
     private authService: AuthService,
     private wsService: WebSocketService
   ) {}
@@ -74,7 +79,9 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
         };
         this.loading = false;
         this.loadComments(id);
+        this.loadActivityLogs(id);
         this.setupCommentWebSocketSubscription(id);
+        this.setupActivityLogWebSocketSubscription(id);
         this.setupIssueWebSocketSubscription();
       },
       error: (error: any) => {
@@ -169,9 +176,13 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
     if (this.issueUpdateSubscription) {
       this.issueUpdateSubscription.unsubscribe();
     }
-    // Unsubscribe from WebSocket topic when component is destroyed
+    if (this.activityLogUpdateSubscription) {
+      this.activityLogUpdateSubscription.unsubscribe();
+    }
+    // Unsubscribe from WebSocket topics when component is destroyed
     if (this.issue) {
       this.wsService.unsubscribeFromComments(this.issue.id);
+      this.wsService.unsubscribeFromActivities(this.issue.id);
     }
   }
 
@@ -367,5 +378,85 @@ export class IssueDetailComponent implements OnInit, OnDestroy {
   formatStatus(status: string): string {
     // Replace underscores with spaces and capitalize words
     return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  loadActivityLogs(issueId: number) {
+    this.loadingActivityLogs = true;
+    this.activityLogService.getActivityLogs(issueId).subscribe({
+      next: (logs) => {
+        this.activityLogs = logs;
+        this.loadingActivityLogs = false;
+      },
+      error: (error: any) => {
+        console.error('Failed to load activity logs:', error);
+        this.loadingActivityLogs = false;
+      }
+    });
+  }
+
+  private setupActivityLogWebSocketSubscription(issueId: number) {
+    if (this.activityLogUpdateSubscription) {
+      this.activityLogUpdateSubscription.unsubscribe();
+    }
+
+    const connectionSub = this.wsService.getConnectionStatus().subscribe(connected => {
+      if (connected) {
+        this.subscribeToActivityLogUpdates(issueId);
+        connectionSub.unsubscribe();
+      }
+    });
+
+    if (this.wsService.isConnected()) {
+      connectionSub.unsubscribe();
+      this.subscribeToActivityLogUpdates(issueId);
+    }
+  }
+
+  private subscribeToActivityLogUpdates(issueId: number) {
+    this.activityLogUpdateSubscription = this.wsService.getActivityLogUpdates(issueId).subscribe({
+      next: (event: ActivityLogUpdateEvent) => {
+        if (event.eventType === 'CREATED') {
+          // Reload activity logs to get the new entry
+          this.loadActivityLogs(issueId);
+        }
+      },
+      error: (error) => {
+        console.warn('Activity log WebSocket subscription error (non-critical):', error);
+      }
+    });
+  }
+
+  formatActivityType(activityType: string): string {
+    return activityType
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  formatActivityMessage(log: ActivityLog): string {
+    const userName = log.userName || 'Unknown';
+    switch (log.activityType) {
+      case 'ISSUE_CREATED':
+        return `${userName} created this issue`;
+      case 'STATUS_CHANGED':
+        return `${userName} changed status from ${log.oldValue || 'N/A'} to ${log.newValue || 'N/A'}`;
+      case 'PRIORITY_CHANGED':
+        return `${userName} changed priority from ${log.oldValue || 'N/A'} to ${log.newValue || 'N/A'}`;
+      case 'ASSIGNEE_CHANGED':
+        const oldAssignee = log.oldValue || 'Unassigned';
+        const newAssignee = log.newValue || 'Unassigned';
+        return `${userName} ${oldAssignee === 'Unassigned' ? 'assigned' : 'reassigned'} this issue ${oldAssignee === 'Unassigned' ? 'to' : 'from'} ${oldAssignee} ${oldAssignee !== 'Unassigned' ? 'to' : ''} ${newAssignee}`;
+      case 'TITLE_CHANGED':
+        return `${userName} changed the title`;
+      case 'DESCRIPTION_CHANGED':
+        return `${userName} updated the description`;
+      case 'COMMENT_ADDED':
+        return `${userName} added a comment`;
+      case 'COMMENT_EDITED':
+        return `${userName} edited a comment`;
+      case 'COMMENT_DELETED':
+        return `${userName} deleted a comment`;
+      default:
+        return `${userName} made a change`;
+    }
   }
 }

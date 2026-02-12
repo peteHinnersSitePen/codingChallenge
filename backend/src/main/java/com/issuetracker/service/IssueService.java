@@ -4,6 +4,7 @@ import com.issuetracker.dto.CreateIssueRequest;
 import com.issuetracker.dto.IssueDto;
 import com.issuetracker.dto.IssueUpdateEvent;
 import com.issuetracker.dto.PageResponse;
+import com.issuetracker.model.ActivityType;
 import com.issuetracker.model.Issue;
 import com.issuetracker.model.IssuePriority;
 import com.issuetracker.model.IssueStatus;
@@ -39,6 +40,9 @@ public class IssueService {
     
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
+    
+    @Autowired
+    private ActivityLogService activityLogService;
     
     @Transactional
     public IssueDto createIssue(CreateIssueRequest request) {
@@ -76,6 +80,16 @@ public class IssueService {
         // Reload with creator and assignee eagerly fetched to ensure DTO conversion works
         issue = issueRepository.findByIdWithCreatorAndAssignee(issue.getId())
             .orElse(issue); // Fallback to original if query fails
+        
+        // Create activity log for issue creation
+        if (activityLogService != null) {
+            try {
+                activityLogService.createActivityLog(issue, ActivityType.ISSUE_CREATED, null, null);
+            } catch (Exception e) {
+                // Log but don't fail the issue creation if activity log fails
+                System.err.println("Failed to create activity log: " + e.getMessage());
+            }
+        }
         
         IssueDto dto = convertToDto(issue);
         
@@ -168,6 +182,14 @@ public class IssueService {
         Issue issue = issueRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Issue not found"));
         
+        // Store old values for activity tracking
+        String oldTitle = issue.getTitle();
+        String oldDescription = issue.getDescription();
+        IssueStatus oldStatus = issue.getStatus();
+        IssuePriority oldPriority = issue.getPriority();
+        Long oldAssigneeId = issue.getAssignee() != null ? issue.getAssignee().getId() : null;
+        
+        // Update fields
         issue.setTitle(request.getTitle());
         issue.setDescription(request.getDescription());
         issue.setStatus(request.getStatus());
@@ -186,6 +208,51 @@ public class IssueService {
         // Reload with creator and assignee eagerly fetched
         issue = issueRepository.findByIdWithCreatorAndAssignee(issue.getId())
             .orElse(issue); // Fallback to original if query fails
+        
+        // Create activity logs for changes
+        if (activityLogService != null) {
+            try {
+                // Track title change
+                if (!oldTitle.equals(request.getTitle())) {
+                    activityLogService.createActivityLog(issue, ActivityType.TITLE_CHANGED, oldTitle, request.getTitle());
+                }
+                
+                // Track description change
+                String oldDesc = oldDescription != null ? oldDescription : "";
+                String newDesc = request.getDescription() != null ? request.getDescription() : "";
+                if (!oldDesc.equals(newDesc)) {
+                    activityLogService.createActivityLog(issue, ActivityType.DESCRIPTION_CHANGED, oldDescription, request.getDescription());
+                }
+                
+                // Track status change
+                if (oldStatus != request.getStatus()) {
+                    activityLogService.createActivityLog(issue, ActivityType.STATUS_CHANGED, 
+                        oldStatus != null ? oldStatus.toString() : null, 
+                        request.getStatus() != null ? request.getStatus().toString() : null);
+                }
+                
+                // Track priority change
+                if (oldPriority != request.getPriority()) {
+                    activityLogService.createActivityLog(issue, ActivityType.PRIORITY_CHANGED, 
+                        oldPriority != null ? oldPriority.toString() : null, 
+                        request.getPriority() != null ? request.getPriority().toString() : null);
+                }
+                
+                // Track assignee change
+                Long newAssigneeId = request.getAssigneeId();
+                if ((oldAssigneeId == null && newAssigneeId != null) || 
+                    (oldAssigneeId != null && !oldAssigneeId.equals(newAssigneeId))) {
+                    String oldAssigneeName = oldAssigneeId != null ? 
+                        userRepository.findById(oldAssigneeId).map(User::getName).orElse("Unknown") : null;
+                    String newAssigneeName = newAssigneeId != null ? 
+                        userRepository.findById(newAssigneeId).map(User::getName).orElse("Unknown") : null;
+                    activityLogService.createActivityLog(issue, ActivityType.ASSIGNEE_CHANGED, oldAssigneeName, newAssigneeName);
+                }
+            } catch (Exception e) {
+                // Log but don't fail the issue update if activity log fails
+                System.err.println("Failed to create activity log: " + e.getMessage());
+            }
+        }
         
         IssueDto dto = convertToDto(issue);
         

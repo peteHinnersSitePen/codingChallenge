@@ -133,6 +133,24 @@
             </div>
           </div>
         </div>
+        
+        <!-- Activity Log Section -->
+        <div class="activity-log-section">
+          <h3>Activity Log</h3>
+          
+          <div *ngIf="loadingActivityLogs" class="loading-activities">Loading activity log...</div>
+          <div *ngIf="!loadingActivityLogs && activityLogs.length === 0" class="no-activities">
+            <p>No activity recorded yet.</p>
+          </div>
+          <div *ngIf="!loadingActivityLogs && activityLogs.length > 0" class="activity-list">
+            <div *ngFor="let log of activityLogs" class="activity-item">
+              <div class="activity-content">
+                <span class="activity-message">{{ formatActivityMessage(log) }}</span>
+                <span class="activity-date">{{ log.createdAt | date:'short' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <!-- Edit Mode -->

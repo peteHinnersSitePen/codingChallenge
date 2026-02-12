@@ -16,9 +16,20 @@ export interface CommentUpdateEvent {
   eventType: 'CREATED' | 'UPDATED' | 'DELETED';
   commentId: number;
   issueId: number;
-  content: string | null;
-  authorId: number;
-  authorName: string;
+  content?: string;
+  authorId?: number;
+  authorName?: string;
+}
+
+export interface ActivityLogUpdateEvent {
+  eventType: 'CREATED';
+  activityLogId: number;
+  issueId: number;
+  activityType: string;
+  userId: number;
+  userName: string;
+  oldValue: string | null;
+  newValue: string | null;
 }
 
 @Injectable({
@@ -27,11 +38,14 @@ export interface CommentUpdateEvent {
 export class WebSocketService {
   private issueUpdates$ = new Subject<IssueUpdateEvent>();
   private commentUpdates$ = new Subject<CommentUpdateEvent>();
+  private activityLogUpdates$ = new Subject<ActivityLogUpdateEvent>();
   private connectionStatus$ = new BehaviorSubject<boolean>(false);
   private stompClient: Client | null = null;
   private issueSubscription: any = null; // Store subscription reference
   private commentSubscriptions: Map<number, any> = new Map(); // Store comment subscriptions by issueId
+  private activitySubscriptions: Map<number, any> = new Map(); // Store activity subscriptions by issueId
   private pendingCommentSubscriptions: Set<number> = new Set(); // Track issueIds that need subscription
+  private pendingActivitySubscriptions: Set<number> = new Set(); // Track issueIds that need activity subscription
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 3000;
@@ -77,6 +91,11 @@ export class WebSocketService {
             this.subscribeToComments(issueId);
           });
           this.pendingCommentSubscriptions.clear();
+          // Subscribe to any pending activity subscriptions
+          this.pendingActivitySubscriptions.forEach(issueId => {
+            this.subscribeToActivities(issueId);
+          });
+          this.pendingActivitySubscriptions.clear();
         },
         onStompError: (frame: any) => {
           console.error('STOMP error:', frame);
@@ -194,6 +213,45 @@ export class WebSocketService {
     }
   }
 
+  getActivityLogUpdates(issueId: number): Observable<ActivityLogUpdateEvent> {
+    this.subscribeToActivities(issueId);
+    return this.activityLogUpdates$.asObservable();
+  }
+
+  private subscribeToActivities(issueId: number) {
+    if (this.activitySubscriptions.has(issueId)) {
+      return;
+    }
+
+    if (!this.stompClient || !this.stompClient.connected) {
+      this.pendingActivitySubscriptions.add(issueId);
+      return;
+    }
+
+    const topic = `/topic/issues/${issueId}/activities`;
+    const subscription = this.stompClient.subscribe(topic, (message) => {
+      try {
+        const event: ActivityLogUpdateEvent = JSON.parse(message.body);
+        if (event.issueId === issueId) {
+          this.activityLogUpdates$.next(event);
+        }
+      } catch (error) {
+        console.error('Error parsing activity log WebSocket message:', error);
+      }
+    });
+
+    this.activitySubscriptions.set(issueId, subscription);
+    this.pendingActivitySubscriptions.delete(issueId);
+  }
+
+  unsubscribeFromActivities(issueId: number) {
+    const subscription = this.activitySubscriptions.get(issueId);
+    if (subscription) {
+      subscription.unsubscribe();
+      this.activitySubscriptions.delete(issueId);
+    }
+  }
+
   getConnectionStatus(): Observable<boolean> {
     return this.connectionStatus$.asObservable();
   }
@@ -208,6 +266,12 @@ export class WebSocketService {
       subscription.unsubscribe();
     });
     this.commentSubscriptions.clear();
+    
+    // Unsubscribe from all activity subscriptions
+    this.activitySubscriptions.forEach((subscription) => {
+      subscription.unsubscribe();
+    });
+    this.activitySubscriptions.clear();
 
     if (this.stompClient) {
       this.stompClient.deactivate();

@@ -1,0 +1,13 @@
+package com.issuetracker.model;
+
+public enum ActivityType {
+    ISSUE_CREATED,
+    STATUS_CHANGED,
+    PRIORITY_CHANGED,
+    ASSIGNEE_CHANGED,
+    TITLE_CHANGED,
+    DESCRIPTION_CHANGED,
+    COMMENT_ADDED,
+    COMMENT_EDITED,
+    COMMENT_DELETED
+}

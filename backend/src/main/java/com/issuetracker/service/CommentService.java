@@ -3,6 +3,7 @@ package com.issuetracker.service;
 import com.issuetracker.dto.CommentDto;
 import com.issuetracker.dto.CommentUpdateEvent;
 import com.issuetracker.dto.CreateCommentRequest;
+import com.issuetracker.model.ActivityType;
 import com.issuetracker.model.Comment;
 import com.issuetracker.model.Issue;
 import com.issuetracker.model.User;
@@ -38,6 +39,9 @@ public class CommentService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
     
+    @Autowired
+    private ActivityLogService activityLogService;
+    
     @Transactional
     public CommentDto createComment(Long issueId, CreateCommentRequest request) {
         Issue issue = issueRepository.findById(issueId)
@@ -61,6 +65,15 @@ public class CommentService {
         comment = commentRepository.save(comment);
         
         CommentDto dto = convertToDto(comment);
+        
+        // Activity log: comment added
+        if (activityLogService != null) {
+            try {
+                activityLogService.createActivityLog(issue, ActivityType.COMMENT_ADDED, null, null);
+            } catch (Exception e) {
+                System.err.println("Failed to create activity log for comment: " + e.getMessage());
+            }
+        }
         
         // Publish WebSocket event
         CommentUpdateEvent event = new CommentUpdateEvent(
@@ -99,8 +112,22 @@ public class CommentService {
             throw new RuntimeException("You can only edit your own comments");
         }
         
+        String oldContent = comment.getContent();
         comment.setContent(request.getContent());
         comment = commentRepository.save(comment);
+        
+        // Activity log: comment edited
+        if (activityLogService != null) {
+            try {
+                Issue issue = comment.getIssue();
+                String newContent = request.getContent();
+                String oldTruncated = oldContent != null && oldContent.length() > 200 ? oldContent.substring(0, 200) + "..." : oldContent;
+                String newTruncated = newContent != null && newContent.length() > 200 ? newContent.substring(0, 200) + "..." : newContent;
+                activityLogService.createActivityLog(issue, ActivityType.COMMENT_EDITED, oldTruncated, newTruncated);
+            } catch (Exception e) {
+                System.err.println("Failed to create activity log for comment edit: " + e.getMessage());
+            }
+        }
         
         CommentDto dto = convertToDto(comment);
         
@@ -132,12 +159,23 @@ public class CommentService {
         }
         
         // Store values before deletion
-        Long issueId = comment.getIssue().getId();
+        Issue issue = issueRepository.findById(comment.getIssue().getId())
+            .orElseThrow(() -> new RuntimeException("Issue not found"));
+        Long issueId = issue.getId();
         Long deletedCommentId = comment.getId();
         Long authorId = comment.getAuthor().getId();
         String authorName = comment.getAuthor().getName();
         
         commentRepository.delete(comment);
+        
+        // Activity log: comment deleted
+        if (activityLogService != null) {
+            try {
+                activityLogService.createActivityLog(issue, ActivityType.COMMENT_DELETED, null, null);
+            } catch (Exception e) {
+                System.err.println("Failed to create activity log for comment delete: " + e.getMessage());
+            }
+        }
         
         // Publish WebSocket event
         CommentUpdateEvent event = new CommentUpdateEvent(
