@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { IssueService, Issue } from '../../services/issue.service';
 import { ProjectService, Project } from '../../services/project.service';
+import { CommentService, Comment } from '../../services/comment.service';
 
 @Component({
   selector: 'app-issue-detail',
@@ -21,6 +22,11 @@ export class IssueDetailComponent implements OnInit {
   updateError = '';
   deleting = false;
   showDeleteConfirm = false;
+  comments: Comment[] = [];
+  loadingComments = false;
+  newComment = '';
+  submittingComment = false;
+  commentError = '';
   
   editData: any = {
     title: '',
@@ -32,7 +38,8 @@ export class IssueDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private router: Router,
-    private issueService: IssueService
+    private issueService: IssueService,
+    private commentService: CommentService
   ) {}
 
   ngOnInit() {
@@ -55,11 +62,49 @@ export class IssueDetailComponent implements OnInit {
           priority: issue.priority
         };
         this.loading = false;
+        this.loadComments(id);
       },
       error: (error: any) => {
         this.errorMessage = 'Failed to load issue';
         this.loading = false;
         console.error(error);
+      }
+    });
+  }
+
+  loadComments(issueId: number) {
+    this.loadingComments = true;
+    this.commentService.getComments(issueId).subscribe({
+      next: (comments) => {
+        this.comments = comments;
+        this.loadingComments = false;
+      },
+      error: (error: any) => {
+        console.error('Failed to load comments:', error);
+        this.loadingComments = false;
+        // Don't show error to user - comments are non-critical
+      }
+    });
+  }
+
+  onSubmitComment() {
+    if (!this.issue || !this.newComment.trim()) {
+      this.commentError = 'Comment cannot be empty';
+      return;
+    }
+
+    this.submittingComment = true;
+    this.commentError = '';
+
+    this.commentService.createComment(this.issue.id, { content: this.newComment.trim() }).subscribe({
+      next: (comment) => {
+        this.comments.push(comment);
+        this.newComment = '';
+        this.submittingComment = false;
+      },
+      error: (error: any) => {
+        this.commentError = error.error?.message || 'Failed to post comment';
+        this.submittingComment = false;
       }
     });
   }

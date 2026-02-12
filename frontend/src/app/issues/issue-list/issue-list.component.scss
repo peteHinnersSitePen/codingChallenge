@@ -40,6 +40,12 @@
   display: grid;
   gap: 1rem;
   margin-bottom: 2rem;
+  transition: opacity 0.2s ease-in-out;
+  
+  &.loading-opacity {
+    opacity: 0.6;
+    pointer-events: none;
+  }
 }
 
 .issue-card {

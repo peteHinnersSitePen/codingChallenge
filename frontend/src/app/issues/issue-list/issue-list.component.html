@@ -57,17 +57,19 @@
     </div>
   </div>
   
-  <div *ngIf="loading" class="loading">Loading issues...</div>
+  <!-- Show loading only on initial load when no data exists -->
+  <div *ngIf="loading && !issuesPage" class="loading">Loading issues...</div>
   <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
   
-  <div *ngIf="!loading && !errorMessage">
-    <div *ngIf="issuesPage && issuesPage.content.length === 0" class="empty-state">
+  <!-- Keep existing data visible while loading to prevent flicker -->
+  <div *ngIf="issuesPage && !errorMessage">
+    <div *ngIf="issuesPage.content.length === 0" class="empty-state">
       <p *ngIf="hasActiveFilters()">No issues found matching your filters. Try adjusting your search criteria.</p>
       <p *ngIf="!hasActiveFilters() && issuesPage.totalElements === 0">No issues found. Create your first issue!</p>
       <p *ngIf="!hasActiveFilters() && issuesPage.totalElements > 0">No issues found.</p>
     </div>
     
-    <div *ngIf="issuesPage && issuesPage.content.length > 0" class="issues-container">
+    <div *ngIf="issuesPage.content.length > 0" class="issues-container" [class.loading-opacity]="loading">
       <div *ngFor="let issue of issuesPage.content" class="issue-card" [routerLink]="['/issues', issue.id]">
         <div class="issue-header">
           <h3>{{ issue.title }}</h3>

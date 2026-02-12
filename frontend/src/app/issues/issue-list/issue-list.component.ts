@@ -92,7 +92,11 @@ export class IssueListComponent implements OnInit, OnDestroy {
   }
 
   loadIssues() {
-    this.loading = true;
+    // Only show loading indicator if we don't have existing data (initial load)
+    const isInitialLoad = !this.issuesPage;
+    if (isInitialLoad) {
+      this.loading = true;
+    }
     this.errorMessage = '';
     
     try {
